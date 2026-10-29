@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ast.h"
 #include "diag.h"
 #include "lexer.h"
+#include "semantic.h"
 
 int yyparse(void);
+extern AstNode *compiler_ast_root;
 
 static char *read_source(FILE *file, size_t *length) {
     size_t capacity = 4096, used = 0;
@@ -28,9 +31,11 @@ static char *read_source(FILE *file, size_t *length) {
 }
 
 int main(int argc, char **argv) {
-    const char *path = argc > 1 ? argv[1] : "-";
-    if (argc > 2) {
-        fprintf(stderr, "Usage: %s [FILE|-]\n", argv[0]);
+    int show_ast = 0, arg = 1;
+    if (arg < argc && strcmp(argv[arg], "--ast") == 0) { show_ast = 1; arg++; }
+    const char *path = arg < argc ? argv[arg] : "-";
+    if (arg + 1 < argc) {
+        fprintf(stderr, "Usage: %s [--ast] [FILE|-]\n", argv[0]);
         return 2;
     }
     FILE *input = strcmp(path, "-") == 0 ? stdin : fopen(path, "rb");
@@ -41,9 +46,12 @@ int main(int argc, char **argv) {
     if (!source) { fprintf(stderr, "Could not read input.\n"); return 2; }
 
     diag_reset();
+    compiler_ast_root = NULL;
     lexer_init(source, length);
     int result = yyparse();
     lexer_destroy();
+    if (result == 0 && diag_error_count() == 0 && compiler_ast_root)
+        (void)semantic_analyze(compiler_ast_root);
 
     for (size_t i = 0; i < diag_count(); ++i) {
         const Diagnostic *d = diag_get(i);
@@ -52,14 +60,19 @@ int main(int argc, char **argv) {
             d->severity == SEV_ERROR ? "error" : "warning",
             d->code, d->message);
     }
-    if (result == 0 && diag_error_count() == 0) {
-        printf("Syntax analysis successful: %s\n", path);
+    int ok = result == 0 && diag_error_count() == 0;
+    if (show_ast && compiler_ast_root && result == 0) {
+        ast_print_json(compiler_ast_root, 0);
+        putchar('\n');
+    } else if (ok) {
+        printf("Syntax and semantic analysis successful: %s\n", path);
     } else {
-        printf("Syntax analysis failed: %d error(s), %d warning(s)\n",
+        printf("Analysis failed: %d error(s), %d warning(s)\n",
             diag_error_count(), diag_warning_count());
     }
-    int exit_code = (result == 0 && diag_error_count() == 0) ? 0 : 1;
+    ast_free(compiler_ast_root);
+    compiler_ast_root = NULL;
     diag_reset();
     free(source);
-    return exit_code;
+    return ok ? 0 : 1;
 }
