@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Explainable Self-Correcting Compiler</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0b1020;color:#e8ecf7}
+body{max-width:1000px;margin:auto;padding:28px 18px}p{color:#aeb9d2}
+textarea{width:100%;min-height:300px;box-sizing:border-box;padding:15px;border:1px solid #34415e;border-radius:10px;background:#111a2f;color:#eef3ff;font:14px/1.55 monospace}
+button{padding:10px 15px;margin:12px 8px 12px 0;border:0;border-radius:8px;background:#86a9ff;color:#071126;font-weight:700;cursor:pointer}
+button.secondary{background:#263653;color:#e8ecf7}.finding{border:1px solid #34415e;background:#111a2f;padding:12px;margin:10px 0;border-radius:9px}
+.error{border-left:4px solid #ff7272}.warning{border-left:4px solid #f2c66d}
+</style></head>
+<body>
+<h1>Explainable Self-Correcting Compiler</h1>
+<p>Paste a small C program to review explainable diagnostics and conservative repair suggestions.</p>
+<textarea id="source" spellcheck="false">int main() {
+    int value = 10
+    return value;
+}</textarea>
+<div><button id="diagnose">Diagnose source</button><button id="repair" class="secondary">Suggest repairs</button></div>
+<p id="status" role="status"></p><section id="results" aria-live="polite"></section>
+<script>
+const source=document.querySelector("#source"),status=document.querySelector("#status"),results=document.querySelector("#results");
+async function callApi(path){
+ status.textContent="Analyzing…";results.replaceChildren();
+ try{
+  const response=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({source:source.value})});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||"Request failed");
+  if(path.endsWith("/repair")){
+   source.value=data.source;status.textContent=data.changed?"Applied "+data.repairs.length+" repair(s). Review and compile the result.":"No automatic repairs were made.";
+   data.repairs.forEach(item=>{const card=document.createElement("article");card.className="finding warning";card.textContent="Line "+item.line+": "+item.explanation+" ("+item.before.trim()+" → "+item.after.trim()+")";results.append(card);});
+   renderFindings(data.findings_after_repair);
+  }else{status.textContent=data.count+" finding(s) reported.";renderFindings(data.findings);}
+ }catch(error){status.textContent="API error: "+error.message+". Start the Flask server and serve this page through a same-origin setup or proxy.";}
+}
+function renderFindings(findings){findings.forEach(item=>{
+ const card=document.createElement("article");card.className="finding "+item.severity;
+ const heading=document.createElement("strong");heading.textContent=item.code+" · "+item.severity.toUpperCase()+" · Line "+item.line+", column "+item.column;
+ const message=document.createElement("p");message.textContent=item.message;
+ const explanation=document.createElement("p");explanation.textContent=item.explanation;
+ card.append(heading,message,explanation);
+ if(item.suggestion){const suggestion=document.createElement("p");suggestion.textContent="Suggestion: "+item.suggestion;card.append(suggestion);}
+ results.append(card);
+});}
+document.querySelector("#diagnose").addEventListener("click",()=>callApi("/api/diagnose"));
+document.querySelector("#repair").addEventListener("click",()=>callApi("/api/repair"));
+</script></body></html>
