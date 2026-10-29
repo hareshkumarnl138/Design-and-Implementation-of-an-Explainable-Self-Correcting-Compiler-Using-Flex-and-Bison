@@ -1,11 +1,15 @@
+.DEFAULT_GOAL := all
+
 # Build lexer and Bison parser. Usage: make; make test; make clean
 CC ?= cc
 FLEX ?= flex
 BISON ?= bison
 BUILD := build
 CFLAGS ?= -D_POSIX_C_SOURCE=200809L -std=c11 -O2 -g -Wall -Wextra -Wpedantic
-GENFLAGS ?= -std=gnu11 -O2 -g -Wall
-ifdef SANITIZE
+
+GENFLAGS ?= -std=gnu11 -O2 -Wall
+
+ifeq ($(SANITIZE),1)
 CFLAGS += -fsanitize=address,undefined -fno-omit-frame-pointer
 GENFLAGS += -fsanitize=address,undefined -fno-omit-frame-pointer
 LDFLAGS += -fsanitize=address,undefined
@@ -17,7 +21,7 @@ PARSER_OBJS := $(COMMON_OBJS) $(BUILD)/ast.o $(BUILD)/semantic.o $(BUILD)/parser
 LEXER := $(BUILD)/lexer
 PARSER := $(BUILD)/parser
 
-.PHONY: all clean
+PHONY: all clean
 all: $(LEXER) $(PARSER)
 
 $(LEXER): $(LEXER_OBJS)
@@ -46,8 +50,14 @@ $(BUILD)/parser.tab.h: $(BUILD)/parser.tab.c
 
 $(BUILD)/parser.tab.o: $(BUILD)/parser.tab.c $(BUILD)/parser.tab.h
 	$(CC) $(CFLAGS) -MMD -MP -I. -I$(BUILD) -c -o $@ $<
+.DELETE_ON_ERROR:
 
-$(BUILD):
+.PHONY: FORCE
+FORCE:
+
+.SECONDARY:
+
+$(BUILD): FORCE
 	mkdir -p $@
 
 clean:

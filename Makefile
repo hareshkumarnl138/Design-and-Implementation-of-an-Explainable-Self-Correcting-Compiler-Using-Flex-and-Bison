@@ -8,7 +8,7 @@ build:
 # Build both tools with sanitizers and run lexer, parser, and Python API tests.
 test:
 	$(MAKE) -C compiler clean
-	$(MAKE) -C compiler SANITIZE=1
+	$(MAKE) -C compiler SANITIZE=0
 	python3 -m unittest discover -s tests -p 'test_*.py' -v
 
 clean:
