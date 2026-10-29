@@ -6,7 +6,7 @@ Each step should finish with a successful build, passing tests, and a commit. St
 |---|---|---|
 | 1 | Project scaffold, shared infrastructure, Flex lexer, CLI and lexer tests | Implemented; CI verification pending |
 | 2 | Initial Bison grammar, parser driver, syntax diagnostics and recovery | Implemented; CI verification pending |
-| 3 | AST construction, scoped symbol table, declarations and type checking | Planned |
+| 3 | AST construction, scoped symbol table, declarations and initial type checking | Implemented in initial form; CI verification pending |
 | 4 | Diagnosis engine and root-cause grouping of cascading errors | Partial: Python heuristic rules exist |
 | 5 | Rule-based repair candidates and re-analysis | Partial: conservative semicolon repair exists |
 | 6 | Intermediate code generation | Planned |
@@ -41,4 +41,4 @@ The compiler subproject builds the standalone lexer and the parser:
 
 ## Current limitations
 
-The grammar accepts a practical subset of C, not the full ISO C language. The current parser recognizes syntax but does not yet build an AST or perform semantic/type checking. The Python diagnosis and repair rules are heuristics and are not substitutes for parser-aware validation. Do not describe the complete self-correcting compiler as finished until the remaining stages and tests are implemented.
+The grammar accepts a practical subset of C, not the full ISO C language. The parser builds an AST and performs an initial scope-aware semantic pass. Type inference, function-signature checking, return-type validation, pointer/array types, and full C compatibility rules remain incomplete. The Python diagnosis and repair rules are heuristics and are not substitutes for parser-aware validation. Do not describe the complete self-correcting compiler as finished until the remaining stages and tests are implemented.
