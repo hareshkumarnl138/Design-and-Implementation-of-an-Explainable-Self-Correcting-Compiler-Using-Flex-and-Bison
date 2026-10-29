@@ -4,14 +4,16 @@
 
 A compiler project for a defined subset of C. It combines a Flex lexer, an initial Bison syntax parser, explainable diagnostic rules, and conservative repair suggestions.
 
-> **Status:** Lexer and initial parser source, Python diagnosis/repair rules, a Flask API, and a browser UI are in the repository. CI/build results should be checked before claiming these components pass. AST construction, semantic/type analysis, intermediate code generation, optimization, and compiler-validated repair are still future milestones.
+> **Status:** Lexer and initial parser source, Python diagnosis/repair rules, a Flask API, and a browser UI are in the repository. CI/build results should be checked before claiming these components pass. The parser now builds an AST and performs an initial scoped symbol/type analysis. Intermediate code generation, optimization, and compiler-validated repair remain future milestones.
 
 ## Features currently present in source
 
 - Flex lexer with source locations and lexical diagnostic codes
 - C token definitions and JSON output support
 - Bison grammar for a practical subset of C
-- Parser driver with syntax diagnostic reporting and basic semicolon recovery
+- Parser driver with syntax diagnostic reporting, AST JSON output (`--ast`), and basic semicolon recovery
+- AST nodes for declarations, functions, blocks, control flow, and expressions
+- Initial semantic checks for undeclared identifiers, same-scope redeclarations, and invalid function calls
 - Python heuristic diagnosis and conservative semicolon repair
 - Flask JSON API and browser UI
 - Lexer and parser fixtures/unit tests
@@ -49,6 +51,7 @@ Run syntax analysis:
 
 ```bash
 ./compiler/build/parser tests/fixtures/valid_basic.c
+./compiler/build/parser --ast tests/fixtures/valid_basic.c
 echo 'int main(void) { int value = 4 return value; }' | ./compiler/build/parser -
 ```
 
@@ -83,11 +86,10 @@ POST endpoints expect JSON with a string field named `source`.
 
 ## Next development milestones
 
-1. Construct an AST from Bison grammar actions.
-2. Add scoped symbol tables and semantic/type checking.
-3. Generate three-address intermediate code.
-4. Add basic-block and peephole optimizations.
-5. Connect repair candidates to parser re-analysis and semantic validation.
-6. Evaluate detection accuracy, successful repairs, and false-fix rate.
+1. Expand semantic checking for function signatures, return types, arrays, and operator compatibility.
+2. Add three-address intermediate code generation from the AST.
+3. Add basic-block and peephole optimizations.
+4. Connect repair candidates to parser re-analysis and semantic validation.
+5. Evaluate detection accuracy, successful repairs, and false-fix rate.
 
 See [the roadmap](docs/ROADMAP.md) and [architecture notes](docs/architecture.md).
