@@ -1,4 +1,4 @@
-/* Flex lexer for a defined subset of C. */
+/* Flex lexer for a defined C subset. */
 %option noyywrap nounput noinput nodefault 8bit never-interactive
 %{
 #include <ctype.h>
@@ -7,16 +7,33 @@
 #include "common.h"
 #include "diag.h"
 #include "lexer.h"
+#ifdef PARSER_BUILD
+#include "parser.tab.h"
+#else
 #include "tokens.h"
+#endif
 SrcLoc lex_tok_loc;
 int lex_emit_comments = 0;
 static int cur_line=1,cur_col=1,cur_off=0;
 static SrcLoc comment_start;
 static YY_BUFFER_STATE scan_buffer;
-static void advance_location(const char *text,int len){lex_tok_loc.line=cur_line;lex_tok_loc.col=cur_col;lex_tok_loc.offset=cur_off;lex_tok_loc.length=len;for(int i=0;i<len;i++){if(text[i]=='\n'){cur_line++;cur_col=1;}else cur_col++;}cur_off+=len;}
+static void advance_location(const char *text,int len){
+    lex_tok_loc.line=cur_line; lex_tok_loc.col=cur_col;
+    lex_tok_loc.offset=cur_off; lex_tok_loc.length=len;
+#ifdef PARSER_BUILD
+    yylloc.first_line=cur_line; yylloc.first_column=cur_col;
+#endif
+    for(int i=0;i<len;i++){
+        if(text[i]=='\n'){cur_line++;cur_col=1;}else cur_col++;
+    }
+    cur_off+=len;
+#ifdef PARSER_BUILD
+    yylloc.last_line=cur_line; yylloc.last_column=cur_col ? cur_col-1 : 1;
+#endif
+}
 #define YY_USER_ACTION advance_location(yytext,yyleng);
 static void report_invalid_char(const char *text){unsigned char c=(unsigned char)text[0];if(c>=0x20&&c<0x7f)diag_add("LEX001",SEV_ERROR,lex_tok_loc,text,"Invalid character '%c'",c);else diag_add("LEX001",SEV_ERROR,lex_tok_loc,text,"Invalid character (byte 0x%02X)",c);}
-static int scan_literal_body(const char *body,int len){int line=lex_tok_loc.line,col=lex_tok_loc.col+1,off=lex_tok_loc.offset+1,nchars=0;for(int i=0;i<len;){if(body[i]!='\\'){i++;col++;nchars++;continue;}char c=(i+1<len)?body[i+1]:'\0';int used=2,ok=1,counts=1;if(c&&strchr("ntrvabf\\'\"?",c)){}else if(c>='0'&&c<='7'){used=1;while(used<4&&i+used<len&&body[i+used]>='0'&&body[i+used]<='7')used++;}else if(c=='x'){int j=i+2;while(j<len&&isxdigit((unsigned char)body[j]))j++;if(j==i+2)ok=0;used=j-i;}else if(c=='\n')counts=0;else ok=0;if(!ok){SrcLoc here={line,col,off+i,used};char esc[8];snprintf(esc,sizeof esc,"%.*s",used<7?used:7,body+i);diag_add("LEX008",SEV_WARNING,here,esc,"Unknown escape sequence '%s'",esc);}if(c=='\n'){line++;col=1;}else col+=used;i+=used;nchars+=counts;}return nchars;}
+static int scan_literal_body(const char *body,int len){int line=lex_tok_loc.line,col=lex_tok_loc.col+1,off=lex_tok_loc.offset+1,nchars=0;for(int i=0;i<len;){if(body[i]!='\\'){i++;col++;nchars++;continue;}char c=(i+1<len)?body[i+1]:'\0';int used=2,ok=1,counts=1;if(c&&strchr("ntrvabf\\'\\"?",c)){}else if(c>='0'&&c<='7'){used=1;while(used<4&&i+used<len&&body[i+used]>='0'&&body[i+used]<='7')used++;}else if(c=='x'){int j=i+2;while(j<len&&isxdigit((unsigned char)body[j]))j++;if(j==i+2)ok=0;used=j-i;}else if(c=='\n')counts=0;else ok=0;if(!ok){SrcLoc here={line,col,off+i,used};char esc[8];snprintf(esc,sizeof esc,"%.*s",used<7?used:7,body+i);diag_add("LEX008",SEV_WARNING,here,esc,"Unknown escape sequence '%s'",esc);}if(c=='\n'){line++;col=1;}else col+=used;i+=used;nchars+=counts;}return nchars;}
 %}
 D [0-9]
 HEXD [0-9a-fA-F]
@@ -59,6 +76,6 @@ STRBODY ([^"\\\n]|\\(.|\n))
 [\x80-\xff]+ {diag_add("LEX001",SEV_ERROR,lex_tok_loc,yytext,"Non-ASCII character(s) are only allowed inside strings, character literals and comments");return TOK_ERROR;}
 . {report_invalid_char(yytext);return TOK_ERROR;}
 %%
-void lexer_init(const char *src,size_t len){cur_line=1;cur_col=1;cur_off=0;memset(&lex_tok_loc,0,sizeof lex_tok_loc);BEGIN(INITIAL);scan_buffer=yy_scan_bytes(src,(yy_size_t)len);}
+void lexer_init(const char *src,size_t len){cur_line=1;cur_col=1;cur_off=0;memset(&lex_tok_loc,0,sizeof lex_tok_loc);BEGIN(INITIAL);if(scan_buffer){yy_delete_buffer(scan_buffer);scan_buffer=NULL;}scan_buffer=yy_scan_bytes(src,(yy_size_t)len);}
 int lexer_next(void){return yylex();}
 void lexer_destroy(void){if(scan_buffer){yy_delete_buffer(scan_buffer);scan_buffer=NULL;}yylex_destroy();}
