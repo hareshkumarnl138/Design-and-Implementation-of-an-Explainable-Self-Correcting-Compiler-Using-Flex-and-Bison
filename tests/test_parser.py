@@ -1,4 +1,4 @@
-"""Integration tests for parsing, AST construction, and semantic checks."""
+"""Integration tests for parsing, AST construction, semantic checks, and TAC."""
 from pathlib import Path
 import subprocess
 import unittest
@@ -34,6 +34,23 @@ class ParserTests(unittest.TestCase):
         self.assertIn(b'"kind": "function"', result.stdout)
         self.assertIn(b'"kind": "declaration"', result.stdout)
         self.assertIn(b'"text": "count"', result.stdout)
+
+    def test_tac_emits_arithmetic_and_return(self):
+        result = self.run_parser("int main(void) { int a = 2; int b = 3; int c; c = a + b * 4; return c; }", "--tac")
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+        output = result.stdout.decode()
+        self.assertIn("# Three-address code (TAC)", output)
+        self.assertIn("t1 = b * 4", output)
+        self.assertIn("t2 = a + t1", output)
+        self.assertIn("c = t2", output)
+        self.assertIn("return c", output)
+
+    def test_tac_emits_if_labels(self):
+        result = self.run_parser("int main(void) { int x = 1; if (x) x = x + 1; else x = 0; return x; }", "--tac")
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+        output = result.stdout.decode()
+        self.assertIn("ifFalse x goto L_else_", output)
+        self.assertIn("L_end_", output)
 
     def test_undeclared_variable_is_semantic_error(self):
         result = self.run_parser("int main(void) { missing = 2; return 0; }")
