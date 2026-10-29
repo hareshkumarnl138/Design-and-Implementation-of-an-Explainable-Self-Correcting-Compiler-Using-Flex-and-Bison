@@ -16,8 +16,8 @@
 #else
 #include "tokens.h"
 #endif
-static char *copy_lexeme(const char *text, size_t len) { char *out = malloc(len + 1); if (out) { memcpy(out, text, len); out[len] = '\0'; } return out; }
 #ifdef PARSER_BUILD
+static char *copy_lexeme(const char *text, size_t len) { char *out = malloc(len + 1); if (out) { memcpy(out, text, len); out[len] = '\0'; } return out; }
 #define RETURN_TEXT(tok) do { yylval.text = copy_lexeme(yytext, (size_t)yyleng); return (tok); } while (0)
 #else
 #define RETURN_TEXT(tok) return (tok)
