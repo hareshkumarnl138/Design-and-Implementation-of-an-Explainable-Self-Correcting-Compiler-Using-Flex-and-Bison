@@ -3,7 +3,7 @@ CC ?= cc
 FLEX ?= flex
 BISON ?= bison
 BUILD := build
-CFLAGS ?= -std=c11 -O2 -g -Wall -Wextra -Wpedantic
+CFLAGS ?= -D_POSIX_C_SOURCE=200809L -std=c11 -O2 -g -Wall -Wextra -Wpedantic
 GENFLAGS ?= -std=gnu11 -O2 -g -Wall
 ifdef SANITIZE
 CFLAGS += -fsanitize=address,undefined -fno-omit-frame-pointer
@@ -13,7 +13,7 @@ endif
 
 COMMON_OBJS := $(BUILD)/diag.o
 LEXER_OBJS := $(COMMON_OBJS) $(BUILD)/json.o $(BUILD)/tokens.o $(BUILD)/lexer_main.o $(BUILD)/lex.yy.o
-PARSER_OBJS := $(COMMON_OBJS) $(BUILD)/parser_main.o $(BUILD)/parser.tab.o $(BUILD)/lex.parser.o
+PARSER_OBJS := $(COMMON_OBJS) $(BUILD)/ast.o $(BUILD)/semantic.o $(BUILD)/parser_main.o $(BUILD)/parser.tab.o $(BUILD)/lex.parser.o
 LEXER := $(BUILD)/lexer
 PARSER := $(BUILD)/parser
 
