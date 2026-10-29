@@ -44,6 +44,9 @@ $(BUILD)/parser.tab.c: parser.y | $(BUILD)
 $(BUILD)/parser.tab.h: $(BUILD)/parser.tab.c
 	@test -f $@
 
+$(BUILD)/parser.tab.o: $(BUILD)/parser.tab.c $(BUILD)/parser.tab.h
+	$(CC) $(CFLAGS) -MMD -MP -I. -I$(BUILD) -c -o $@ $<
+
 $(BUILD):
 	mkdir -p $@
 
