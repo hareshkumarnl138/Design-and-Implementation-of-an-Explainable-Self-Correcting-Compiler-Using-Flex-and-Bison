@@ -2,95 +2,92 @@
 
 **Design and Implementation of an Explainable Self-Correcting Compiler Using Flex and Bison with Intelligent Error Diagnosis and Automated Code Repair**
 
-A compiler project for a defined subset of C, combining a Flex lexer with explainable source diagnostics and conservative repair suggestions.
+A compiler project for a defined subset of C. It combines a Flex lexer, an initial Bison syntax parser, explainable diagnostic rules, and conservative repair suggestions.
 
-> **Project status:** The Flex lexer and an initial Python diagnosis/repair API are present. The full Bison parser, AST, symbol table, semantic/type analysis, and complete compiler pipeline are not implemented yet. Check [the roadmap](docs/ROADMAP.md) for remaining milestones.
+> **Status:** Lexer and initial parser source, Python diagnosis/repair rules, a Flask API, and a browser UI are in the repository. CI/build results should be checked before claiming these components pass. AST construction, semantic/type analysis, intermediate code generation, optimization, and compiler-validated repair are still future milestones.
 
-## Implemented components
+## Features currently present in source
 
 - Flex lexer with source locations and lexical diagnostic codes
-- Shared C diagnostic collector and JSON output support
-- Command-line lexer and token definitions
-- Python heuristics for unmatched delimiters, likely missing semicolons, and suspicious assignment in conditions
-- Conservative semicolon repair for selected simple statements, with a record explaining each edit
-- Flask JSON API and lightweight browser interface
-- Python unit tests and C fixture programs
+- C token definitions and JSON output support
+- Bison grammar for a practical subset of C
+- Parser driver with syntax diagnostic reporting and basic semicolon recovery
+- Python heuristic diagnosis and conservative semicolon repair
+- Flask JSON API and browser UI
+- Lexer and parser fixtures/unit tests
+- GitHub Actions workflow for automated build and tests
 
-The diagnosis and repair rules are **heuristics**, not a complete C parser. They can produce false positives or miss errors. Review every proposed edit and compile the result before using it.
+The parser is not a complete ISO C parser. Diagnosis and repair rules are heuristics, can miss errors or report false positives, and must be reviewed. A repair should not be treated as valid until it passes parser and semantic checks.
 
 ## Requirements
 
-For the C lexer on Debian/Ubuntu:
+On Debian/Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install build-essential flex bison make python3
-```
-
-For the Python API:
-
-```python
+sudo apt install build-essential flex bison make python3 python3-pip
 python -m pip install -r requirements.txt
 ```
 
-## Build and test the lexer
+## Build and test
+
+From the repository root:
 
 ```bash
 make
 make test
 ```
 
-Try the lexer:
+Run lexical analysis:
 
 ```bash
-./compiler/build/lexer tests/fixtures/invalid_lexical.c
-./compiler/build/lexer --json tests/fixtures/valid_basic.c
-echo 'int x = 5 @ 3;' | ./compiler/build/lexer -
+./compiler/build/lexer tests/fixtures/valid_basic.c
+./compiler/build/lexer --json tests/fixtures/invalid_lexical.c
 ```
+
+Run syntax analysis:
+
+```bash
+./compiler/build/parser tests/fixtures/valid_basic.c
+echo 'int main(void) { int value = 4 return value; }' | ./compiler/build/parser -
+```
+
+The second example should be rejected for a syntax error.
 
 ## Run the diagnosis API
 
-From the repository root:
-
 ```bash
+python -m pip install -r requirements.txt
 python backend/app.py
 ```
 
-API endpoints:
+Open `http://127.0.0.1:5000`. API endpoints:
 
-- `GET http://127.0.0.1:5000/api/health`
-- `POST http://127.0.0.1:5000/api/diagnose`
-- `POST http://127.0.0.1:5000/api/repair`
+- `GET /api/health`
+- `POST /api/diagnose`
+- `POST /api/repair`
 
-POST endpoints expect JSON with a string field named `source`. Example:
-
-```bash
-curl -X POST http://127.0.0.1:5000/api/diagnose \
-  -H "Content-Type: application/json" \
-  -d '{"source":"int main() { return 0; }"}'
-```
-
-The browser interface is in `frontend/index.html`. It calls the API on the same origin, so serve it through a web server that proxies `/api` to Flask, or configure your local development server accordingly.
+POST endpoints expect JSON with a string field named `source`.
 
 ## Repository structure
 
 ```text
 .
-├── compiler/       Flex lexer and shared C modules
-├── diagnosis/      Explainable diagnosis and conservative repair rules
+├── compiler/       Flex lexer, Bison grammar, drivers, shared C modules
+├── diagnosis/      Explainable heuristic diagnosis and conservative repair
 ├── backend/        Flask JSON API
 ├── frontend/       Browser interface
-├── tests/          Python tests and C fixtures
+├── tests/          Lexer/parser tests and C fixtures
 └── docs/           Roadmap, architecture, and lexer documentation
 ```
 
-## Roadmap
+## Next development milestones
 
-The next major compiler milestones are the Bison grammar/parser, AST construction, symbol-table and semantic analysis, parser-aware error recovery, repair validation through recompilation, and end-to-end integration. Optional AI-generated suggestions should be independently validated by compiler checks.
+1. Construct an AST from Bison grammar actions.
+2. Add scoped symbol tables and semantic/type checking.
+3. Generate three-address intermediate code.
+4. Add basic-block and peephole optimizations.
+5. Connect repair candidates to parser re-analysis and semantic validation.
+6. Evaluate detection accuracy, successful repairs, and false-fix rate.
 
-## Documentation
-
-- [Roadmap](docs/ROADMAP.md)
-- [Architecture](docs/architecture.md)
-- [Lexer documentation](docs/lexer.md)
-- [Backend API notes](backend/README.md)
+See [the roadmap](docs/ROADMAP.md) and [architecture notes](docs/architecture.md).
