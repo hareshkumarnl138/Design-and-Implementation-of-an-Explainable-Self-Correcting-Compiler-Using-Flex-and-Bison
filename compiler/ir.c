@@ -171,153 +171,157 @@ static char *gen_expr(const AstNode *node, IrState *state) {
     }
 }
 
-static void gen_stmt(const AstNode *node, IrState *state) {
-    for (const AstNode *item = node; item; item = item->next) {
-        switch (item->kind) {
-        case AST_TRANSLATION_UNIT:
-        case AST_BLOCK:
-            gen_stmt(item->child, state);
-            break;
+static void gen_stmt_one(const AstNode *item, IrState *state) {
+    if (!item) return;
+    switch (item->kind) {
+    case AST_TRANSLATION_UNIT:
+    case AST_BLOCK:
+        gen_stmt(item->child, state);
+        break;
 
-        case AST_FUNCTION: {
-            const char *name = item->text ? item->text : "<anonymous>";
-            emit("");
-            emit("function %s:", name);
-            const AstNode *body = item->child;
-            while (body && body->kind != AST_BLOCK) body = body->next;
-            gen_stmt(body, state);
-            emit("end function %s", name);
-            break;
-        }
-
-        case AST_DECLARATION:
-            for (const AstNode *decl = item->child; decl; decl = decl->next) {
-                if (decl->kind != AST_DECLARATOR || !decl->text) continue;
-                emit("# declare %s %s", item->text ? item->text : "int", decl->text);
-                if (decl->child) {
-                    char *value = gen_expr(decl->child, state);
-                    emit("%s = %s", decl->text, value);
-                    free(value);
-                }
-            }
-            break;
-
-        case AST_EXPRESSION_STATEMENT:
-            if (item->child) {
-                char *value = gen_expr(item->child, state);
-                free(value);
-            }
-            break;
-
-        case AST_RETURN:
-            if (item->child) {
-                char *value = gen_expr(item->child, state);
-                emit("return %s", value);
-                free(value);
-            } else {
-                emit("return");
-            }
-            break;
-
-        case AST_IF: {
-            char *condition = gen_expr(child_at(item, 0), state);
-            char *else_label = new_label(state, "L_else_");
-            char *end_label = new_label(state, "L_end_");
-            emit("ifFalse %s goto %s", condition, else_label);
-            gen_stmt(child_at(item, 1), state);
-            if (child_at(item, 2)) {
-                emit("goto %s", end_label);
-                emit("%s:", else_label);
-                gen_stmt(child_at(item, 2), state);
-                emit("%s:", end_label);
-            } else {
-                emit("%s:", else_label);
-            }
-            free(condition);
-            free(else_label);
-            free(end_label);
-            break;
-        }
-
-        case AST_WHILE: {
-            char *start = new_label(state, "L_while_");
-            char *end = new_label(state, "L_end_while_");
-            emit("%s:", start);
-            char *condition = gen_expr(child_at(item, 0), state);
-            emit("ifFalse %s goto %s", condition, end);
-            gen_stmt(child_at(item, 1), state);
-            emit("goto %s", start);
-            emit("%s:", end);
-            free(condition);
-            free(start);
-            free(end);
-            break;
-        }
-
-        case AST_DO_WHILE: {
-            char *start = new_label(state, "L_do_");
-            emit("%s:", start);
-            gen_stmt(child_at(item, 0), state);
-            char *condition = gen_expr(child_at(item, 1), state);
-            emit("if %s goto %s", condition, start);
-            free(condition);
-            free(start);
-            break;
-        }
-
-        case AST_FOR: {
-            const AstNode *init = child_at(item, 0);
-            const AstNode *condition_node = child_at(item, 1);
-            const AstNode *step = child_at(item, 2);
-            const AstNode *body = child_at(item, 3);
-            gen_stmt(init, state);
-            char *start = new_label(state, "L_for_");
-            char *step_label = new_label(state, "L_for_step_");
-            char *end = new_label(state, "L_end_for_");
-            emit("%s:", start);
-            if (condition_node) {
-                char *condition = gen_expr(condition_node, state);
-                emit("ifFalse %s goto %s", condition, end);
-                free(condition);
-            }
-            gen_stmt(body, state);
-            emit("%s:", step_label);
-            if (step) {
-                char *value = gen_expr(step, state);
-                free(value);
-            }
-            emit("goto %s", start);
-            emit("%s:", end);
-            free(start);
-            free(step_label);
-            free(end);
-            break;
-        }
-
-        case AST_BREAK:
-            emit("# break (loop target resolution pending)");
-            break;
-
-        case AST_CONTINUE:
-            emit("# continue (loop target resolution pending)");
-            break;
-
-        case AST_EMPTY:
-            break;
-
-        default:
-            if (item->kind == AST_ASSIGNMENT || item->kind == AST_BINARY ||
-                item->kind == AST_UNARY || item->kind == AST_CALL ||
-                item->kind == AST_CONDITIONAL || item->kind == AST_INDEX ||
-                item->kind == AST_IDENTIFIER || item->kind == AST_LITERAL) {
-                char *value = gen_expr(item, state);
-                free(value);
-            } else {
-                gen_stmt(item->child, state);
-            }
-            break;
-        }
+    case AST_FUNCTION: {
+        const char *name = item->text ? item->text : "<anonymous>";
+        emit("");
+        emit("function %s:", name);
+        const AstNode *body = item->child;
+        while (body && body->kind != AST_BLOCK) body = body->next;
+        gen_stmt_one(body, state);
+        emit("end function %s", name);
+        break;
     }
+
+    case AST_DECLARATION:
+        for (const AstNode *decl = item->child; decl; decl = decl->next) {
+            if (decl->kind != AST_DECLARATOR || !decl->text) continue;
+            emit("# declare %s %s", item->text ? item->text : "int", decl->text);
+            if (decl->child) {
+                char *value = gen_expr(decl->child, state);
+                emit("%s = %s", decl->text, value);
+                free(value);
+            }
+        }
+        break;
+
+    case AST_EXPRESSION_STATEMENT:
+        if (item->child) {
+            char *value = gen_expr(item->child, state);
+            free(value);
+        }
+        break;
+
+    case AST_RETURN:
+        if (item->child) {
+            char *value = gen_expr(item->child, state);
+            emit("return %s", value);
+            free(value);
+        } else {
+            emit("return");
+        }
+        break;
+
+    case AST_IF: {
+        char *condition = gen_expr(child_at(item, 0), state);
+        char *else_label = new_label(state, "L_else_");
+        char *end_label = new_label(state, "L_end_");
+        emit("ifFalse %s goto %s", condition, else_label);
+        gen_stmt_one(child_at(item, 1), state);
+        if (child_at(item, 2)) {
+            emit("goto %s", end_label);
+            emit("%s:", else_label);
+            gen_stmt_one(child_at(item, 2), state);
+            emit("%s:", end_label);
+        } else {
+            emit("%s:", else_label);
+        }
+        free(condition);
+        free(else_label);
+        free(end_label);
+        break;
+    }
+
+    case AST_WHILE: {
+        char *start = new_label(state, "L_while_");
+        char *end = new_label(state, "L_end_while_");
+        emit("%s:", start);
+        char *condition = gen_expr(child_at(item, 0), state);
+        emit("ifFalse %s goto %s", condition, end);
+        gen_stmt_one(child_at(item, 1), state);
+        emit("goto %s", start);
+        emit("%s:", end);
+        free(condition);
+        free(start);
+        free(end);
+        break;
+    }
+
+    case AST_DO_WHILE: {
+        char *start = new_label(state, "L_do_");
+        emit("%s:", start);
+        gen_stmt_one(child_at(item, 0), state);
+        char *condition = gen_expr(child_at(item, 1), state);
+        emit("if %s goto %s", condition, start);
+        free(condition);
+        free(start);
+        break;
+    }
+
+    case AST_FOR: {
+        const AstNode *init = child_at(item, 0);
+        const AstNode *condition_node = child_at(item, 1);
+        const AstNode *step = child_at(item, 2);
+        const AstNode *body = child_at(item, 3);
+        gen_stmt_one(init, state);
+        char *start = new_label(state, "L_for_");
+        char *step_label = new_label(state, "L_for_step_");
+        char *end = new_label(state, "L_end_for_");
+        emit("%s:", start);
+        if (condition_node) {
+            char *condition = gen_expr(condition_node, state);
+            emit("ifFalse %s goto %s", condition, end);
+            free(condition);
+        }
+        gen_stmt_one(body, state);
+        emit("%s:", step_label);
+        if (step) {
+            char *value = gen_expr(step, state);
+            free(value);
+        }
+        emit("goto %s", start);
+        emit("%s:", end);
+        free(start);
+        free(step_label);
+        free(end);
+        break;
+    }
+
+    case AST_BREAK:
+        emit("# break (loop target resolution pending)");
+        break;
+
+    case AST_CONTINUE:
+        emit("# continue (loop target resolution pending)");
+        break;
+
+    case AST_EMPTY:
+        break;
+
+    default:
+        if (item->kind == AST_ASSIGNMENT || item->kind == AST_BINARY ||
+            item->kind == AST_UNARY || item->kind == AST_CALL ||
+            item->kind == AST_CONDITIONAL || item->kind == AST_INDEX ||
+            item->kind == AST_IDENTIFIER || item->kind == AST_LITERAL) {
+            char *value = gen_expr(item, state);
+            free(value);
+        } else {
+            gen_stmt(item->child, state);
+        }
+        break;
+    }
+}
+
+static void gen_stmt(const AstNode *node, IrState *state) {
+    for (const AstNode *item = node; item; item = item->next)
+        gen_stmt_one(item, state);
 }
 
 void ir_generate(const AstNode *root) {
