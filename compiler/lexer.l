@@ -3,6 +3,7 @@
 %{
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #ifdef PARSER_BUILD
 #include "parser.tab.h"
