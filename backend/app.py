@@ -1,7 +1,7 @@
-"""Flask JSON API for diagnosis and conservative repair."""
+"""Flask API and same-origin browser UI for diagnosis and conservative repair."""
 from pathlib import Path
 import sys
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -23,6 +23,10 @@ def read_source():
         return None, (jsonify({"error": "Source exceeds 100000 characters."}), 413)
     return source, None
 
+@app.get("/")
+def index():
+    return send_from_directory(ROOT / "frontend", "index.html")
+
 @app.get("/api/health")
 def health():
     return jsonify({"status": "ok", "service": "smartfix-compiler-api"})
@@ -30,26 +34,29 @@ def health():
 @app.post("/api/diagnose")
 def api_diagnose():
     source, error = read_source()
-    if error: return error
+    if error:
+        return error
     findings = [item.to_dict() for item in diagnose(source)]
-    return jsonify({"ok": not any(x["severity"] == "error" for x in findings),
-                    "count": len(findings), "findings": findings})
+    return jsonify({
+        "ok": not any(item["severity"] == "error" for item in findings),
+        "count": len(findings),
+        "findings": findings,
+    })
 
 @app.post("/api/repair")
 def api_repair():
     source, error = read_source()
-    if error: return error
+    if error:
+        return error
     corrected, repairs = repair_source(source)
     findings = [item.to_dict() for item in diagnose(corrected)]
-    return jsonify({"source": corrected, "changed": corrected != source,
+    return jsonify({
+        "source": corrected,
+        "changed": corrected != source,
         "repairs": [item.to_dict() for item in repairs],
         "findings_after_repair": findings,
-        "note": "Repairs are heuristic. Review the result and compile it before use."})
-
-@app.get("/")
-def index():
-    return jsonify({"name": "Explainable Self-Correcting Compiler API",
-        "endpoints": ["/api/health", "/api/diagnose", "/api/repair"]})
+        "note": "Repairs are heuristic. Review the result and compile it before use.",
+    })
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=False)
