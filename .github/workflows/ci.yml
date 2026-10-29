@@ -14,9 +14,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install Python dependencies
-        run: python -m pip install -r requirements.txt
-      - name: Run Python unit tests
+      - name: Install compiler tools and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential flex bison make
+          python -m pip install -r requirements.txt
+      - name: Build lexer and parser
+        run: make
+      - name: Run all tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
 
   lexer-build:
@@ -24,8 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Flex and compiler tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential flex make
-      - name: Build lexer
+        run: sudo apt-get update && sudo apt-get install -y build-essential flex bison make
+      - name: Build lexer and parser
         run: make
-      - name: Run lexer test suite
+      - name: Run complete test suite
         run: make test
