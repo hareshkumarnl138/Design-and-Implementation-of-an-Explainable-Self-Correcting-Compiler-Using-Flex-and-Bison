@@ -45,6 +45,11 @@ class ParserTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(b"SEM001", result.stderr)
 
+    def test_incompatible_return_type_is_semantic_error(self):
+        result = self.run_parser('int main(void) { return "not an integer"; }')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"SEM008", result.stderr)
+
     def test_nested_scope_can_shadow_outer_variable(self):
         result = self.run_parser("int main(void) { int value; { int value; value = 2; } return 0; }")
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
