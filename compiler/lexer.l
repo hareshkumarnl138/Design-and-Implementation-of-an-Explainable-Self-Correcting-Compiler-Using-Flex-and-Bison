@@ -4,6 +4,9 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef PARSER_BUILD
+#include "parser.tab.h"
+#endif
 #include "common.h"
 #include "diag.h"
 #include "lexer.h"
@@ -11,6 +14,12 @@
 #include "parser.tab.h"
 #else
 #include "tokens.h"
+#endif
+static char *copy_lexeme(const char *text, size_t len) { char *out = malloc(len + 1); if (out) { memcpy(out, text, len); out[len] = '\0'; } return out; }
+#ifdef PARSER_BUILD
+#define RETURN_TEXT(tok) do { yylval.text = copy_lexeme(yytext, (size_t)yyleng); return (tok); } while (0)
+#else
+#define RETURN_TEXT(tok) return (tok)
 #endif
 SrcLoc lex_tok_loc;
 int lex_emit_comments = 0;
@@ -65,17 +74,17 @@ STRBODY ([^"\\\n]|\\(.|\n))
 "return" {return TOK_KW_RETURN;}
 "break" {return TOK_KW_BREAK;}
 "continue" {return TOK_KW_CONTINUE;}
-{ID} {return TOK_IDENTIFIER;}
-0[xX]{HEXD}+{ISUF} {return TOK_INT_LITERAL;}
-0[0-7]+{ISUF} {return TOK_INT_LITERAL;}
-([1-9]{D}*|0){ISUF} {return TOK_INT_LITERAL;}
-{D}+\.{D}*({EXP})?{FSUF} {return TOK_FLOAT_LITERAL;}
-\.{D}+({EXP})?{FSUF} {return TOK_FLOAT_LITERAL;}
-{D}+{EXP}{FSUF} {return TOK_FLOAT_LITERAL;}
+{ID} {RETURN_TEXT(TOK_IDENTIFIER);}
+0[xX]{HEXD}+{ISUF} {RETURN_TEXT(TOK_INT_LITERAL);}
+0[0-7]+{ISUF} {RETURN_TEXT(TOK_INT_LITERAL);}
+([1-9]{D}*|0){ISUF} {RETURN_TEXT(TOK_INT_LITERAL);}
+{D}+\.{D}*({EXP})?{FSUF} {RETURN_TEXT(TOK_FLOAT_LITERAL);}
+\.{D}+({EXP})?{FSUF} {RETURN_TEXT(TOK_FLOAT_LITERAL);}
+{D}+{EXP}{FSUF} {RETURN_TEXT(TOK_FLOAT_LITERAL);}
 ({D}|\.{D})[A-Za-z0-9_.]* {diag_add("LEX007",SEV_ERROR,lex_tok_loc,yytext,"Malformed numeric literal '%s'",yytext);return TOK_ERROR;}
-\"{STRBODY}*\" {scan_literal_body(yytext+1,yyleng-2);return TOK_STRING_LITERAL;}
+\"{STRBODY}*\" {scan_literal_body(yytext+1,yyleng-2);RETURN_TEXT(TOK_STRING_LITERAL);}
 \"{STRBODY}* {diag_add("LEX002",SEV_ERROR,lex_tok_loc,yytext,"Unterminated string literal (missing closing quote)");return TOK_ERROR;}
-'{CHARBODY}*' {int n=scan_literal_body(yytext+1,yyleng-2);if(n==0){diag_add("LEX004",SEV_ERROR,lex_tok_loc,yytext,"Empty character literal");return TOK_ERROR;}if(n>1){diag_add("LEX005",SEV_ERROR,lex_tok_loc,yytext,"Character literal contains %d characters; expected exactly one",n);return TOK_ERROR;}return TOK_CHAR_LITERAL;}
+'{CHARBODY}*' {int n=scan_literal_body(yytext+1,yyleng-2);if(n==0){diag_add("LEX004",SEV_ERROR,lex_tok_loc,yytext,"Empty character literal");return TOK_ERROR;}if(n>1){diag_add("LEX005",SEV_ERROR,lex_tok_loc,yytext,"Character literal contains %d characters; expected exactly one",n);return TOK_ERROR;}RETURN_TEXT(TOK_CHAR_LITERAL);}
 '{CHARBODY}* {diag_add("LEX003",SEV_ERROR,lex_tok_loc,yytext,"Unterminated character literal (missing closing quote)");return TOK_ERROR;}
 "<<=" {return TOK_SHL_ASSIGN;}
 ">>=" {return TOK_SHR_ASSIGN;}
