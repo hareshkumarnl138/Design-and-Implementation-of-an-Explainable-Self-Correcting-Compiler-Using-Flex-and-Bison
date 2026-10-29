@@ -25,7 +25,7 @@ init_declarator: declarator | declarator TOK_ASSIGN expression ;
 declarator: TOK_IDENTIFIER | declarator TOK_LBRACKET optional_expression TOK_RBRACKET ;
 optional_expression: %empty | expression ;
 function_definition: type_specifier TOK_IDENTIFIER TOK_LPAREN parameter_list_opt TOK_RPAREN compound_statement ;
-parameter_list_opt: %empty | parameter_list ;
+parameter_list_opt: %empty | TOK_KW_VOID | parameter_list ;
 parameter_list: parameter | parameter_list TOK_COMMA parameter ;
 parameter: type_specifier declarator ;
 compound_statement: TOK_LBRACE block_item_list_opt TOK_RBRACE ;
@@ -38,7 +38,8 @@ selection_statement: TOK_KW_IF TOK_LPAREN expression TOK_RPAREN statement
  | TOK_KW_IF TOK_LPAREN expression TOK_RPAREN statement TOK_KW_ELSE statement ;
 iteration_statement: TOK_KW_WHILE TOK_LPAREN expression TOK_RPAREN statement
  | TOK_KW_DO statement TOK_KW_WHILE TOK_LPAREN expression TOK_RPAREN TOK_SEMICOLON
- | TOK_KW_FOR TOK_LPAREN optional_expression TOK_SEMICOLON optional_expression TOK_SEMICOLON optional_expression TOK_RPAREN statement ;
+ | TOK_KW_FOR TOK_LPAREN for_init_opt TOK_SEMICOLON optional_expression TOK_SEMICOLON optional_expression TOK_RPAREN statement ;
+for_init_opt: %empty | expression | type_specifier init_declarator_list ;
 jump_statement: TOK_KW_RETURN optional_expression TOK_SEMICOLON | TOK_KW_BREAK TOK_SEMICOLON | TOK_KW_CONTINUE TOK_SEMICOLON ;
 expression: assignment_expression ;
 assignment_expression: conditional_expression | unary_expression assignment_operator assignment_expression ;
