@@ -1,0 +1,26 @@
+# C / Flex / Bison build outputs
+compiler/build/
+*.o
+*.d
+*.yy.c
+*.tab.c
+*.tab.h
+a.out
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Runtime output
+*.log
+*.tmp
