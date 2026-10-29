@@ -14,6 +14,7 @@ void yyerror(const char *message);
 %}
 %define parse.error detailed
 %locations
+%code requires { #include "ast.h" }
 %union { char *text; AstNode *node; }
 %token TOK_ERROR 257
 %token TOK_KW_INT 258 TOK_KW_FLOAT 259 TOK_KW_DOUBLE 260 TOK_KW_CHAR 261 TOK_KW_VOID 262
@@ -23,19 +24,6 @@ void yyerror(const char *message);
 %token TOK_PLUS 287 TOK_MINUS 288 TOK_STAR 289 TOK_SLASH 290 TOK_PERCENT 291 TOK_INC 292 TOK_DEC 293 TOK_EQ 294 TOK_NE 295 TOK_LT 296 TOK_GT 297 TOK_LE 298 TOK_GE 299 TOK_AND_AND 300 TOK_OR_OR 301 TOK_NOT 302 TOK_AMP 303 TOK_PIPE 304 TOK_CARET 305 TOK_TILDE 306 TOK_SHL 307 TOK_SHR 308 TOK_QUESTION 309 TOK_COLON 310
 %token TOK_LPAREN 311 TOK_RPAREN 312 TOK_LBRACE 313 TOK_RBRACE 314 TOK_LBRACKET 315 TOK_RBRACKET 316 TOK_SEMICOLON 317 TOK_COMMA 318 TOK_PREPROCESSOR 319 TOK_COMMENT 320
 %type <node> translation_unit external_list external type_specifier declaration init_declarator_list init_declarator declarator optional_expression function_definition parameter_list_opt parameter_list parameter compound_statement block_item_list_opt block_item_list block_item statement expression_statement selection_statement iteration_statement for_init_opt jump_statement expression assignment_expression assignment_operator conditional_expression logical_or_expression logical_and_expression bitwise_or_expression bitwise_xor_expression bitwise_and_expression equality_expression relational_expression shift_expression additive_expression multiplicative_expression unary_expression postfix_expression argument_expression_list_opt argument_expression_list primary_expression
-%left TOK_OR_OR
-%left TOK_AND_AND
-%left TOK_PIPE
-%left TOK_CARET
-%left TOK_AMP
-%left TOK_EQ TOK_NE
-%left TOK_LT TOK_GT TOK_LE TOK_GE
-%left TOK_SHL TOK_SHR
-%left TOK_PLUS TOK_MINUS
-%left TOK_STAR TOK_SLASH TOK_PERCENT
-%right TOK_ASSIGN TOK_PLUS_ASSIGN TOK_MINUS_ASSIGN TOK_STAR_ASSIGN TOK_SLASH_ASSIGN TOK_PERCENT_ASSIGN TOK_AMP_ASSIGN TOK_PIPE_ASSIGN TOK_CARET_ASSIGN TOK_SHL_ASSIGN TOK_SHR_ASSIGN
-%right TOK_QUESTION TOK_COLON
-%right TOK_NOT TOK_TILDE
 %precedence IF_WITHOUT_ELSE
 %precedence TOK_KW_ELSE
 %start translation_unit
