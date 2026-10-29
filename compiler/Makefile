@@ -17,11 +17,11 @@ endif
 
 COMMON_OBJS := $(BUILD)/diag.o
 LEXER_OBJS := $(COMMON_OBJS) $(BUILD)/json.o $(BUILD)/tokens.o $(BUILD)/lexer_main.o $(BUILD)/lex.yy.o
-PARSER_OBJS := $(COMMON_OBJS) $(BUILD)/ast.o $(BUILD)/semantic.o $(BUILD)/parser_main.o $(BUILD)/parser.tab.o $(BUILD)/lex.parser.o
+PARSER_OBJS := $(COMMON_OBJS) $(BUILD)/ast.o $(BUILD)/semantic.o $(BUILD)/ir.o $(BUILD)/parser_main.o $(BUILD)/parser.tab.o $(BUILD)/lex.parser.o
 LEXER := $(BUILD)/lexer
 PARSER := $(BUILD)/parser
 
-PHONY: all clean
+.PHONY: all clean
 all: $(LEXER) $(PARSER)
 
 $(LEXER): $(LEXER_OBJS)
