@@ -5,6 +5,7 @@
 #include "diag.h"
 #include "lexer.h"
 #include "semantic.h"
+#include "ir.h"
 
 int yyparse(void);
 extern AstNode *compiler_ast_root;
@@ -31,11 +32,16 @@ static char *read_source(FILE *file, size_t *length) {
 }
 
 int main(int argc, char **argv) {
-    int show_ast = 0, arg = 1;
-    if (arg < argc && strcmp(argv[arg], "--ast") == 0) { show_ast = 1; arg++; }
+    int output_mode = 0, arg = 1; /* 0=summary, 1=AST JSON, 2=TAC */
+    if (arg < argc && strcmp(argv[arg], "--ast") == 0) { output_mode = 1; arg++; }
+    else if (arg < argc && (strcmp(argv[arg], "--tac") == 0 ||
+                            strcmp(argv[arg], "--ir") == 0)) {
+        output_mode = 2;
+        arg++;
+    }
     const char *path = arg < argc ? argv[arg] : "-";
     if (arg + 1 < argc) {
-        fprintf(stderr, "Usage: %s [--ast] [FILE|-]\n", argv[0]);
+        fprintf(stderr, "Usage: %s [--ast|--tac] [FILE|-]\n", argv[0]);
         return 2;
     }
     FILE *input = strcmp(path, "-") == 0 ? stdin : fopen(path, "rb");
@@ -61,9 +67,11 @@ int main(int argc, char **argv) {
             d->code, d->message);
     }
     int ok = result == 0 && diag_error_count() == 0;
-    if (show_ast && compiler_ast_root && result == 0) {
+    if (ok && output_mode == 1 && compiler_ast_root) {
         ast_print_json(compiler_ast_root, 0);
         putchar('\n');
+    } else if (ok && output_mode == 2 && compiler_ast_root) {
+        ir_generate(compiler_ast_root);
     } else if (ok) {
         printf("Syntax and semantic analysis successful: %s\n", path);
     } else {
