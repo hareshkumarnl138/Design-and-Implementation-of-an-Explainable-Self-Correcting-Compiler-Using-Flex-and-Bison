@@ -52,8 +52,19 @@ STRBODY ([^"\\\n]|\\(.|\n))
 <COMMENT>"*" ;
 <COMMENT>\n ;
 <COMMENT><<EOF>> { BEGIN(INITIAL);comment_start.length=cur_off-comment_start.offset;lex_tok_loc=comment_start;diag_add("LEX006",SEV_ERROR,comment_start,"/*","Unterminated block comment (opened here, never closed)");return TOK_ERROR; }
-"int" {return TOK_KW_INT;} "float" {return TOK_KW_FLOAT;} "double" {return TOK_KW_DOUBLE;} "char" {return TOK_KW_CHAR;} "void" {return TOK_KW_VOID;}
-"if" {return TOK_KW_IF;} "else" {return TOK_KW_ELSE;} "while" {return TOK_KW_WHILE;} "for" {return TOK_KW_FOR;} "do" {return TOK_KW_DO;} "return" {return TOK_KW_RETURN;} "break" {return TOK_KW_BREAK;} "continue" {return TOK_KW_CONTINUE;}
+"int" {return TOK_KW_INT;}
+"float" {return TOK_KW_FLOAT;}
+"double" {return TOK_KW_DOUBLE;}
+"char" {return TOK_KW_CHAR;}
+"void" {return TOK_KW_VOID;}
+"if" {return TOK_KW_IF;}
+"else" {return TOK_KW_ELSE;}
+"while" {return TOK_KW_WHILE;}
+"for" {return TOK_KW_FOR;}
+"do" {return TOK_KW_DO;}
+"return" {return TOK_KW_RETURN;}
+"break" {return TOK_KW_BREAK;}
+"continue" {return TOK_KW_CONTINUE;}
 {ID} {return TOK_IDENTIFIER;}
 0[xX]{HEXD}+{ISUF} {return TOK_INT_LITERAL;}
 0[0-7]+{ISUF} {return TOK_INT_LITERAL;}
@@ -66,10 +77,49 @@ STRBODY ([^"\\\n]|\\(.|\n))
 \"{STRBODY}* {diag_add("LEX002",SEV_ERROR,lex_tok_loc,yytext,"Unterminated string literal (missing closing quote)");return TOK_ERROR;}
 '{CHARBODY}*' {int n=scan_literal_body(yytext+1,yyleng-2);if(n==0){diag_add("LEX004",SEV_ERROR,lex_tok_loc,yytext,"Empty character literal");return TOK_ERROR;}if(n>1){diag_add("LEX005",SEV_ERROR,lex_tok_loc,yytext,"Character literal contains %d characters; expected exactly one",n);return TOK_ERROR;}return TOK_CHAR_LITERAL;}
 '{CHARBODY}* {diag_add("LEX003",SEV_ERROR,lex_tok_loc,yytext,"Unterminated character literal (missing closing quote)");return TOK_ERROR;}
-"<<=" {return TOK_SHL_ASSIGN;} ">>=" {return TOK_SHR_ASSIGN;} "+=" {return TOK_PLUS_ASSIGN;} "-=" {return TOK_MINUS_ASSIGN;} "*=" {return TOK_STAR_ASSIGN;} "/=" {return TOK_SLASH_ASSIGN;} "%=" {return TOK_PERCENT_ASSIGN;} "&=" {return TOK_AMP_ASSIGN;} "|=" {return TOK_PIPE_ASSIGN;} "^=" {return TOK_CARET_ASSIGN;}
-"++" {return TOK_INC;} "--" {return TOK_DEC;} "==" {return TOK_EQ;} "!=" {return TOK_NE;} "<=" {return TOK_LE;} ">=" {return TOK_GE;} "&&" {return TOK_AND_AND;} "||" {return TOK_OR_OR;} "<<" {return TOK_SHL;} ">>" {return TOK_SHR;}
-"=" {return TOK_ASSIGN;} "+" {return TOK_PLUS;} "-" {return TOK_MINUS;} "*" {return TOK_STAR;} "/" {return TOK_SLASH;} "%" {return TOK_PERCENT;} "<" {return TOK_LT;} ">" {return TOK_GT;} "!" {return TOK_NOT;} "&" {return TOK_AMP;} "|" {return TOK_PIPE;} "^" {return TOK_CARET;} "~" {return TOK_TILDE;} "?" {return TOK_QUESTION;} ":" {return TOK_COLON;}
-"(" {return TOK_LPAREN;} ")" {return TOK_RPAREN;} "{" {return TOK_LBRACE;} "}" {return TOK_RBRACE;} "[" {return TOK_LBRACKET;} "]" {return TOK_RBRACKET;} ";" {return TOK_SEMICOLON;} "," {return TOK_COMMA;}
+"<<=" {return TOK_SHL_ASSIGN;}
+">>=" {return TOK_SHR_ASSIGN;}
+"+=" {return TOK_PLUS_ASSIGN;}
+"-=" {return TOK_MINUS_ASSIGN;}
+"*=" {return TOK_STAR_ASSIGN;}
+"/=" {return TOK_SLASH_ASSIGN;}
+"%=" {return TOK_PERCENT_ASSIGN;}
+"&=" {return TOK_AMP_ASSIGN;}
+"|=" {return TOK_PIPE_ASSIGN;}
+"^=" {return TOK_CARET_ASSIGN;}
+"++" {return TOK_INC;}
+"--" {return TOK_DEC;}
+"==" {return TOK_EQ;}
+"!=" {return TOK_NE;}
+"<=" {return TOK_LE;}
+">=" {return TOK_GE;}
+"&&" {return TOK_AND_AND;}
+"||" {return TOK_OR_OR;}
+"<<" {return TOK_SHL;}
+">>" {return TOK_SHR;}
+"=" {return TOK_ASSIGN;}
+"+" {return TOK_PLUS;}
+"-" {return TOK_MINUS;}
+"*" {return TOK_STAR;}
+"/" {return TOK_SLASH;}
+"%" {return TOK_PERCENT;}
+"<" {return TOK_LT;}
+">" {return TOK_GT;}
+"!" {return TOK_NOT;}
+"&" {return TOK_AMP;}
+"|" {return TOK_PIPE;}
+"^" {return TOK_CARET;}
+"~" {return TOK_TILDE;}
+"?" {return TOK_QUESTION;}
+":" {return TOK_COLON;}
+"(" {return TOK_LPAREN;}
+")" {return TOK_RPAREN;}
+"{" {return TOK_LBRACE;}
+"}" {return TOK_RBRACE;}
+"[" {return TOK_LBRACKET;}
+"]" {return TOK_RBRACKET;}
+";" {return TOK_SEMICOLON;}
+"," {return TOK_COMMA;}
 [\x80-\xff]+ {diag_add("LEX001",SEV_ERROR,lex_tok_loc,yytext,"Non-ASCII character(s) are only allowed inside strings, character literals and comments");return TOK_ERROR;}
 . {report_invalid_char(yytext);return TOK_ERROR;}
 %%
