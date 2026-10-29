@@ -1,12 +1,11 @@
-# Top-level entry point.  Delegates to the sub-projects.
+# Top-level entry point.
 .PHONY: all build test clean
 
 all: build
-
 build:
 	$(MAKE) -C compiler
 
-# Tests run against a sanitizer build so memory errors fail the suite.
+# Build both tools with sanitizers and run lexer, parser, and Python API tests.
 test:
 	$(MAKE) -C compiler clean
 	$(MAKE) -C compiler SANITIZE=1
