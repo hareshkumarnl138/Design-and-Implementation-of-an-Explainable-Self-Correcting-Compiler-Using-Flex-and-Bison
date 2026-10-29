@@ -2,24 +2,25 @@
 
 **Design and Implementation of an Explainable Self-Correcting Compiler Using Flex and Bison with Intelligent Error Diagnosis and Automated Code Repair**
 
-A compiler project for a defined subset of C. It combines a Flex lexer, an initial Bison syntax parser, explainable diagnostic rules, and conservative repair suggestions.
+A compiler project for a defined subset of C. It combines a Flex lexer, a Bison parser, explainable diagnostic rules, conservative repair suggestions, AST construction, initial semantic analysis, and three-address intermediate code generation.
 
-> **Status:** Lexer and initial parser source, Python diagnosis/repair rules, a Flask API, and a browser UI are in the repository. CI/build results should be checked before claiming these components pass. The parser now builds an AST and performs an initial scoped symbol/type analysis. Intermediate code generation, optimization, and compiler-validated repair remain future milestones.
+> **Status:** The lexer, parser, AST, initial scoped symbol/type checks, and TAC output are implemented for a subset of C. Python diagnosis/repair rules, a Flask API, and a browser UI are also present. CI should be checked for the latest commit before claiming the complete project is production-ready. Optimizations and compiler-validated repair remain future milestones.
 
 ## Features currently present in source
 
 - Flex lexer with source locations and lexical diagnostic codes
 - C token definitions and JSON output support
 - Bison grammar for a practical subset of C
-- Parser driver with syntax diagnostic reporting, AST JSON output (`--ast`), and basic semicolon recovery
+- Parser driver with syntax diagnostics, AST JSON output (`--ast`), TAC output (`--tac` or `--ir`), and basic semicolon recovery
 - AST nodes for declarations, functions, blocks, control flow, and expressions
-- Initial semantic checks for undeclared identifiers, same-scope redeclarations, and invalid function calls
+- Initial semantic checks for undeclared identifiers, same-scope redeclarations, invalid function calls, and some return-type errors
+- Three-address code generation for arithmetic/logical expressions, assignments, function calls, returns, branches, and loop structures
 - Python heuristic diagnosis and conservative semicolon repair
 - Flask JSON API and browser UI
 - Lexer and parser fixtures/unit tests
 - GitHub Actions workflow for automated build and tests
 
-The parser is not a complete ISO C parser. Diagnosis and repair rules are heuristics, can miss errors or report false positives, and must be reviewed. A repair should not be treated as valid until it passes parser and semantic checks.
+The parser is not a complete ISO C parser. TAC is an educational intermediate representation, not machine code. Some C constructs and control-flow details (including full pointer/array semantics and precise break/continue target resolution) are not yet supported. Diagnosis and repair rules are heuristics, can miss errors or report false positives, and must be reviewed. A repair should not be treated as valid until it passes parser and semantic checks.
 
 ## Requirements
 
@@ -47,15 +48,31 @@ Run lexical analysis:
 ./compiler/build/lexer --json tests/fixtures/invalid_lexical.c
 ```
 
-Run syntax analysis:
+Run syntax analysis and AST generation:
 
 ```bash
 ./compiler/build/parser tests/fixtures/valid_basic.c
 ./compiler/build/parser --ast tests/fixtures/valid_basic.c
-echo 'int main(void) { int value = 4 return value; }' | ./compiler/build/parser -
 ```
 
-The second example should be rejected for a syntax error.
+Generate three-address code:
+
+```bash
+./compiler/build/parser --tac tests/fixtures/valid_basic.c
+# --ir is an alias for --tac
+```
+
+Read source from standard input:
+
+```bash
+echo 'int main(void) { int a = 2; int b = 3; return a + b * 4; }' | ./compiler/build/parser --tac -
+```
+
+The following syntax example should be rejected:
+
+```bash
+echo 'int main(void) { int value = 4 return value; }' | ./compiler/build/parser -
+```
 
 ## Run the diagnosis API
 
@@ -76,20 +93,19 @@ POST endpoints expect JSON with a string field named `source`.
 
 ```text
 .
-├── compiler/       Flex lexer, Bison grammar, drivers, shared C modules
+├── compiler/       Flex lexer, Bison grammar, AST, semantic and TAC modules
 ├── diagnosis/      Explainable heuristic diagnosis and conservative repair
 ├── backend/        Flask JSON API
-├── frontend/       Browser interface
+├── frontend/       Browser UI
 ├── tests/          Lexer/parser tests and C fixtures
 └── docs/           Roadmap, architecture, and lexer documentation
 ```
 
 ## Next development milestones
 
-1. Expand semantic checking for function signatures, return types, arrays, and operator compatibility.
-2. Add three-address intermediate code generation from the AST.
-3. Add basic-block and peephole optimizations.
-4. Connect repair candidates to parser re-analysis and semantic validation.
-5. Evaluate detection accuracy, successful repairs, and false-fix rate.
+1. Add basic-block construction and peephole/constant-folding optimizations over TAC.
+2. Resolve loop-control targets and expand TAC coverage for more C constructs.
+3. Connect repair candidates to parser re-analysis and semantic validation.
+4. Evaluate detection accuracy, successful repairs, and false-fix rate.
 
 See [the roadmap](docs/ROADMAP.md) and [architecture notes](docs/architecture.md).
