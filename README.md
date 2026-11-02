@@ -14,6 +14,7 @@ A compiler project for a defined subset of C. It combines a Flex lexer, Bison pa
 - AST nodes for declarations, functions, blocks, control flow, and expressions
 - Initial semantic checks for undeclared identifiers, same-scope redeclarations, invalid function calls, and some return-type errors
 - Three-address code generation for supported expressions, assignments, calls, returns, branches, and loops
+- TAC optimizer with basic-block/CFG construction, local constant folding, constant propagation, and dead temporary elimination
 - Explainable Python heuristic diagnosis
 - Conservative repair candidate generation
 - Compiler-backed validation of repair candidates using the Flex/Bison parser and semantic pass
