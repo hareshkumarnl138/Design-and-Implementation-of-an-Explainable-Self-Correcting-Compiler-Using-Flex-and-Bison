@@ -4,7 +4,7 @@
 
 A compiler project for a defined subset of C. It combines a Flex lexer, Bison parser, AST construction, initial semantic analysis, three-address intermediate code generation, explainable Python diagnostics, conservative repair candidates, and compiler-backed repair validation.
 
-> **Status:** The lexer, parser, AST, initial scoped semantic checks, and TAC output are implemented for a subset of C. The Python diagnosis/repair layer and Flask/browser interface are present. Repair candidates are now re-analyzed by the actual compiler before the API applies them. TAC optimization and broader grammar/type coverage remain future work.
+> **Status:** The lexer, parser, AST, initial scoped semantic checks, and TAC output are implemented for a subset of C. The Python diagnosis/repair layer and Flask/browser interface are present. Repair candidates are now re-analyzed by the actual compiler before the API applies them. The TAC optimizer is available through an end-to-end pipeline command; broader grammar/type coverage remains future work.
 
 ## Features
 
@@ -14,7 +14,7 @@ A compiler project for a defined subset of C. It combines a Flex lexer, Bison pa
 - AST nodes for declarations, functions, blocks, control flow, and expressions
 - Initial semantic checks for undeclared identifiers, same-scope redeclarations, invalid function calls, and some return-type errors
 - Three-address code generation for supported expressions, assignments, calls, returns, branches, and loops
-- TAC optimizer with basic-block/CFG construction, local constant folding, constant propagation, and dead temporary elimination
+- TAC optimizer with basic-block/CFG construction, local constant folding, constant propagation, and dead temporary elimination; end-to-end `compiler_pipeline.py` supports `-O0` and `-O1`
 - Explainable Python heuristic diagnosis
 - Conservative repair candidate generation
 - Compiler-backed validation of repair candidates using the Flex/Bison parser and semantic pass
@@ -68,6 +68,32 @@ Read source from standard input:
 echo 'int main(void) { int a = 2; int b = 3; return a + b * 4; }' | ./compiler/build/parser --tac -
 ```
 
+## Run the compiler optimization pipeline
+
+Build the compiler first:
+
+```bash
+make
+```
+
+Generate raw TAC (optimization disabled):
+
+```bash
+python3 compiler_pipeline.py tests/fixtures/valid_basic.c -O0
+```
+
+Generate optimized TAC with a basic-block/CFG summary and instruction-count report:
+
+```bash
+python3 compiler_pipeline.py tests/fixtures/valid_basic.c -O1 --blocks --report
+```
+
+- `-O0` emits the parser's original TAC.
+- `-O1` applies local constant folding, constant propagation, and dead temporary elimination.
+- `--blocks` prints block successors to standard error.
+- `--report` prints TAC instruction counts before and after optimization to standard error.
+
+The optimizer is currently local to each basic block; it is not a global data-flow optimizer.
 ## Run the diagnosis and repair API
 
 ```bash
