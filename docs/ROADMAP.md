@@ -14,7 +14,7 @@ Each step should finish with a successful build, passing tests, and a commit. CI
 | 8 | Web UI with editor, diagnostics, fixes and AST visualization | Initial UI implemented; diagnosis and validated repair integrated |
 | 9 | Optional AI suggestions validated by the compiler | Planned |
 | 10 | Evaluation using detection, repair and false-fix metrics | Planned |
-| 11 | Basic-block construction and TAC optimizations | Initial implementation: block/CFG construction, constant folding, propagation, dead temporary elimination |
+| 11 | Basic-block construction and TAC optimizations | Implemented initial local optimizer and end-to-end `compiler_pipeline.py` (`-O0`/`-O1`); global data-flow optimization remains future work |
 
 ## Build and test
 
