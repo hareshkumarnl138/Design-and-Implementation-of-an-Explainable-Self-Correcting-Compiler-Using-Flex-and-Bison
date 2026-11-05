@@ -129,6 +129,33 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
             output.append(original)
 
     candidate = "".join(output)
+
+    # A missing closing brace is a safe candidate only when the heuristic
+    # delimiter scanner identifies an unmatched opening curly brace. Append
+    # one brace per unmatched opening brace; the real compiler remains the
+    # authority that accepts or rejects the complete candidate.
+    delimiter_findings = diagnose(candidate)
+    missing_braces = [
+        finding for finding in delimiter_findings
+        if finding.code == "SYN002"
+        and "Opening delimiter '{'" in finding.message
+    ]
+    if missing_braces:
+        closers = "}" * len(missing_braces)
+        had_trailing_newline = candidate.endswith("\\n")
+        insertion = ("\\n" if candidate and not had_trailing_newline else "") + closers
+        repaired = candidate + insertion
+        repairs.append(
+            Repair(
+                "FIX002",
+                candidate.count("\\n") + 1,
+                "",
+                closers,
+                "Inserted closing brace(s) for unmatched opening block delimiter(s).",
+            )
+        )
+        candidate = repaired
+
     before = sum(f.severity == "error" for f in diagnose(source))
     after = sum(f.severity == "error" for f in diagnose(candidate))
     return (source, []) if after > before else (candidate, repairs)
