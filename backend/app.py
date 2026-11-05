@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
 
 from diagnosis.diagnose import diagnose
 from diagnosis.repair import repair_source, validate_source
+from diagnosis.semantic_hints import compiler_findings
 
 app = Flask(__name__)
 MAX_SOURCE_CHARS = 100_000
@@ -47,8 +48,10 @@ def api_diagnose():
     source, error = read_source()
     if error:
         return error
-    findings = [item.to_dict() for item in diagnose(source)]
     compiler_result = validate_source(source)
+    findings = [item.to_dict() for item in diagnose(source)]
+    if compiler_result["available"]:
+        findings.extend(item.to_dict() for item in compiler_findings(source, compiler_result["stderr"]))
     return jsonify({
         "ok": compiler_result["valid"] if compiler_result["available"] else
               not any(item["severity"] == "error" for item in findings),
@@ -69,6 +72,8 @@ def api_repair():
     accepted = candidate != source and bool(repairs) and validation["available"] and validation["valid"]
     corrected = candidate if accepted else source
     findings = [item.to_dict() for item in diagnose(corrected)]
+    if validation["available"]:
+        findings.extend(item.to_dict() for item in compiler_findings(corrected, validation["stderr"]))
 
     if candidate != source and not accepted:
         note = (
