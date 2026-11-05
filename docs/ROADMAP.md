@@ -5,7 +5,7 @@ Each step should finish with a successful build, passing tests, and a commit. CI
 | Step | Deliverable | Status |
 |---|---|---|
 | 1 | Project scaffold, shared infrastructure, Flex lexer, CLI and lexer tests | Implemented |
-| 2 | Initial Bison grammar, parser driver, syntax diagnostics and recovery | Implemented |
+| 2 | Initial Bison grammar, parser driver, syntax diagnostics and statement-level multi-error recovery | Implemented |
 | 3 | AST construction, scoped symbol table, declarations and initial type checking | Implemented for a subset of C |
 | 4 | Diagnosis engine and root-cause grouping of cascading errors | Partial: heuristic rules plus structured compiler-backed semantic hints for undeclared names and same-scope redeclarations |
 | 5 | Rule-based repair candidates and re-analysis | Implemented for conservative syntax candidates; semantic changes are suggestion-only to avoid guessing programmer intent |
@@ -38,7 +38,7 @@ The compiler subproject builds the standalone lexer and parser:
 
 - The lexer and parser share numeric token IDs.
 - Byte offsets and source locations are retained for diagnostic reporting.
-- Parser recovery should allow analysis to continue after a syntax fault.
+- Parser recovery should synchronize at statement terminators so independent syntax faults later in a function can also be reported.
 - JSON is the intended process boundary between compiler phases and the backend.
 - TAC uses named temporaries and labels to make evaluation order and control flow inspectable.
 - Repair candidates are never applied by the API until the real compiler accepts the candidate.
