@@ -23,6 +23,13 @@ class ParserTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(b"SYN100", result.stderr)
 
+    def test_recovers_and_reports_multiple_statement_errors(self):
+        source = "int main(void) { int first = ; int second = ; return 0; }"
+        result = self.run_parser(source)
+        self.assertNotEqual(result.returncode, 0)
+        diagnostics = result.stderr.decode(errors="replace")
+        self.assertGreaterEqual(diagnostics.count("SYN100"), 2, diagnostics)
+
     def test_empty_translation_unit_is_accepted(self):
         result = self.run_parser("")
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
