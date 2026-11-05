@@ -78,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         optimized, blocks = optimize_tac(raw)
         sys.stdout.write(optimized)
         if args.blocks:
-            print("\\nBasic blocks and CFG successors:", file=sys.stderr)
+            print("\nBasic blocks and CFG successors:", file=sys.stderr)
             for block in blocks:
                 print(f"  {block.name}: {', '.join(block.successors) or '(exit)'}",
                       file=sys.stderr)
