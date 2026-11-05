@@ -44,7 +44,7 @@ parameter : type_specifier declarator { $$=NODE(AST_PARAMETER,$2->text); $$->typ
 compound_statement : TOK_LBRACE block_item_list_opt TOK_RBRACE { $$=NODE(AST_BLOCK,NULL); ADD($$,$2); } ;
 block_item_list_opt : %empty { $$=NULL; } | block_item_list { $$=$1; } ;
 block_item_list : block_item { $$=$1; } | block_item_list block_item { $$=ast_join($1,$2); } ;
-block_item : declaration { $=$1; } | statement { $=$1; } | TOK_COMMENT { $=NULL; } | error TOK_SEMICOLON { yyerrok; $=NULL; } ;
+block_item : declaration { $ = $1; } | statement { $ = $1; } | TOK_COMMENT { $ = NULL; } | error TOK_SEMICOLON { yyerrok; $ = NULL; } ;
 statement : compound_statement { $$=$1; } | expression_statement { $$=$1; } | selection_statement { $$=$1; } | iteration_statement { $$=$1; } | jump_statement { $$=$1; } ;
 expression_statement : optional_expression TOK_SEMICOLON { $$=NODE(AST_EXPRESSION_STATEMENT,NULL); ADD($$,$1); } ;
 selection_statement : TOK_KW_IF TOK_LPAREN expression TOK_RPAREN statement %prec IF_WITHOUT_ELSE { $$=NODE(AST_IF,NULL); ADD($$,$3); ADD($$,$5); } | TOK_KW_IF TOK_LPAREN expression TOK_RPAREN statement TOK_KW_ELSE statement { $$=NODE(AST_IF,NULL); ADD($$,$3); ADD($$,$5); ADD($$,$7); } ;
