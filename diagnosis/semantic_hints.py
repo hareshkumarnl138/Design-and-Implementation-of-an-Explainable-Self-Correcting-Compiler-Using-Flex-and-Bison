@@ -46,7 +46,7 @@ def compiler_findings(source: str, stderr: str) -> list[Finding]:
                 key=lambda item: (item[0], item[1]),
             )
             suggestion = ""
-            if ranked and ranked[0][0] <= max(1, len(name) // 3):
+            if ranked and ranked[0][0] <= max(2, len(name) // 3):
                 suggestion = (
                     f"Did you mean '{ranked[0][1]}'? Check the spelling and scope; "
                     "the compiler will not rename it automatically."
