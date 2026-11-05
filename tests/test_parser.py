@@ -74,6 +74,22 @@ class ParserTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(b"SEM008", result.stderr)
 
+
+    def test_break_outside_loop_is_semantic_error(self):
+        result = self.run_parser("int main(void) { break; return 0; }")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"SEM009", result.stderr)
+
+    def test_continue_outside_loop_is_semantic_error(self):
+        result = self.run_parser("int main(void) { continue; return 0; }")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"SEM010", result.stderr)
+
+    def test_break_and_continue_inside_nested_loops_are_valid(self):
+        source = "int main(void) { int i = 0; while (i < 3) { if (i) break; else continue; } return 0; }"
+        result = self.run_parser(source)
+        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+
     def test_nested_scope_can_shadow_outer_variable(self):
         result = self.run_parser("int main(void) { int value; { int value; value = 2; } return 0; }")
         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
