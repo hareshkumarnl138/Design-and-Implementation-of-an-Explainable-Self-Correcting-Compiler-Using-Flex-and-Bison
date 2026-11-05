@@ -27,6 +27,22 @@ class DiagnosisTests(unittest.TestCase):
         self.assertIn("return 0;", fixed)
         self.assertEqual(len(repairs), 1)
 
+    def test_generates_missing_closing_brace_candidate(self):
+        source = "int main() {\n int a = 10;\n return a;\n"
+        fixed, repairs = repair_source(source)
+        self.assertTrue(fixed.rstrip().endswith("}"))
+        self.assertEqual([repair.rule for repair in repairs], ["FIX002"])
+
+    def test_api_applies_compiler_validated_closing_brace_repair(self):
+        source = "int main() {\n int a = 10;\n return a;\n"
+        response = self.client.post("/api/repair", json={"source": source})
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["changed"], data["validation"]["stderr"])
+        self.assertTrue(data["validation"]["valid"])
+        self.assertTrue(data["source"].rstrip().endswith("}"))
+        self.assertEqual(data["repairs"][0]["rule"], "FIX002")
+
     def test_control_header_not_repaired(self):
         source = "if (x == 1)\n"
         self.assertEqual(repair_source(source), (source, []))
