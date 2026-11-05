@@ -10,7 +10,7 @@ A compiler project for a defined subset of C. It combines a Flex lexer, Bison pa
 
 - Flex lexer with source locations and lexical diagnostic codes
 - Bison grammar for a practical subset of C
-- Parser driver with syntax diagnostics, AST JSON output (`--ast`), TAC output (`--tac` or `--ir`), and basic semicolon recovery
+- Parser driver with syntax diagnostics, AST JSON output (`--ast`), TAC output (`--tac` or `--ir`), and statement-level error recovery that can report multiple malformed statements in one function
 - AST nodes for declarations, functions, blocks, control flow, and expressions
 - Initial semantic checks for undeclared identifiers, same-scope redeclarations, invalid function calls, and some return-type errors
 - Three-address code generation for supported expressions, assignments, calls, returns, branches, and loops
