@@ -12,6 +12,16 @@ PARSER = ROOT / "compiler" / "build" / "parser"
 VALIDATION_TIMEOUT_SECONDS = 5
 
 
+def resolve_parser_path() -> Path:
+    """Resolve the parser executable on POSIX and Windows/MSYS2 builds."""
+    if PARSER.is_file():
+        return PARSER
+    windows_executable = PARSER.with_name(PARSER.name + ".exe")
+    if windows_executable.is_file():
+        return windows_executable
+    return PARSER
+
+
 @dataclass(frozen=True)
 class Repair:
     rule: str
@@ -26,7 +36,8 @@ class Repair:
 
 def validate_source(source: str) -> dict:
     """Run the real Flex/Bison compiler and semantic pass against source text."""
-    if not PARSER.is_file():
+    parser_executable = resolve_parser_path()
+    if not parser_executable.is_file():
         return {
             "available": False,
             "valid": False,
@@ -36,7 +47,7 @@ def validate_source(source: str) -> dict:
         }
     try:
         result = subprocess.run(
-            [str(PARSER), "-"],
+            [str(parser_executable), "-"],
             input=source,
             text=True,
             capture_output=True,
@@ -75,13 +86,13 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
     repairs: list[Repair] = []
     output: list[str] = []
     statement = re.compile(
-        r"^\s*(?:return(?:\s+[^;{}]+)?|break|continue|"
-        r"(?:int|float|double|char)\s+[A-Za-z_]\w*(?:\s*=.*)?|"
-        r"[A-Za-z_]\w*\s*=\s*[^=].*)\s*$"
+        r"^\\s*(?:return(?:\\s+[^;{}]+)?|break|continue|"
+        r"(?:int|float|double|char)\\s+[A-Za-z_]\\w*(?:\\s*=.*)?|"
+        r"[A-Za-z_]\\w*\\s*=\\s*[^=].*)\\s*$"
     )
     in_block_comment = False
     for number, original in enumerate(lines, start=1):
-        newline = "\n" if original.endswith("\n") else ""
+        newline = "\\n" if original.endswith("\\n") else ""
         body = original[:-1] if newline else original
         stripped = body.strip()
         if in_block_comment:
@@ -99,7 +110,7 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
         if (
             statement.match(body)
             and not stripped.endswith((";", "{", "}", ":", ","))
-            and not re.match(r"^(if|while|for|switch|else)\b", stripped)
+            and not re.match(r"^(if|while|for|switch|else)\\b", stripped)
             and "//" not in body
             and "/*" not in body
         ):
