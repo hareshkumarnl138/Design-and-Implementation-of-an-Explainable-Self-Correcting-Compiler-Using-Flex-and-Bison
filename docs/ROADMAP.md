@@ -7,8 +7,8 @@ Each step should finish with a successful build, passing tests, and a commit. CI
 | 1 | Project scaffold, shared infrastructure, Flex lexer, CLI and lexer tests | Implemented |
 | 2 | Initial Bison grammar, parser driver, syntax diagnostics and recovery | Implemented |
 | 3 | AST construction, scoped symbol table, declarations and initial type checking | Implemented for a subset of C |
-| 4 | Diagnosis engine and root-cause grouping of cascading errors | Partial: Python heuristic rules exist |
-| 5 | Rule-based repair candidates and re-analysis | Implemented for conservative candidates: candidates are checked by the real parser and semantic pass before API application |
+| 4 | Diagnosis engine and root-cause grouping of cascading errors | Partial: heuristic rules plus structured compiler-backed semantic hints for undeclared names and same-scope redeclarations |
+| 5 | Rule-based repair candidates and re-analysis | Implemented for conservative syntax candidates; semantic changes are suggestion-only to avoid guessing programmer intent |
 | 6 | Three-address intermediate code generation | Initial TAC generator implemented |
 | 7 | Flask backend and JSON API | Initial API implemented; compiler validation integrated |
 | 8 | Web UI with editor, diagnostics, fixes and AST visualization | Initial UI implemented; diagnosis and validated repair integrated |
