@@ -142,13 +142,13 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
     ]
     if missing_braces:
         closers = "}" * len(missing_braces)
-        had_trailing_newline = candidate.endswith("\\n")
-        insertion = ("\\n" if candidate and not had_trailing_newline else "") + closers
+        had_trailing_newline = candidate.endswith("\n")
+        insertion = ("\n" if candidate and not had_trailing_newline else "") + closers
         repaired = candidate + insertion
         repairs.append(
             Repair(
                 "FIX002",
-                candidate.count("\\n") + 1,
+                candidate.count("\n") + 1,
                 "",
                 closers,
                 "Inserted closing brace(s) for unmatched opening block delimiter(s).",
