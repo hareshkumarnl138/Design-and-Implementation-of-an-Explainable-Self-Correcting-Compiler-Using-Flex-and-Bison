@@ -3,6 +3,7 @@ import unittest
 from backend.app import app
 from diagnosis.diagnose import diagnose
 from diagnosis.repair import repair_source, validate_source
+from diagnosis.semantic_hints import compiler_findings
 
 
 class DiagnosisTests(unittest.TestCase):
@@ -72,6 +73,32 @@ class DiagnosisTests(unittest.TestCase):
         self.assertTrue(data["candidate_rejected"])
         self.assertEqual(data["source"], source)
         self.assertFalse(data["validation"]["valid"])
+
+    def test_undeclared_identifier_suggests_close_declared_name(self):
+        findings = compiler_findings(
+            "int main(void) { int total = 1; return totla; }",
+            "-:1:42: error[SEM002]: Use of undeclared identifier 'totla'",
+        )
+        self.assertEqual(findings[0].code, "SEM002")
+        self.assertIn("total", findings[0].suggestion)
+
+    def test_duplicate_declaration_explains_manual_choices(self):
+        findings = compiler_findings(
+            "int main(void) { int value = 1; int value = 2; return value; }",
+            "-:1:39: error[SEM001]: Redeclaration of 'value' in the same scope",
+        )
+        self.assertEqual(findings[0].code, "SEM001")
+        self.assertIn("Rename one declaration", findings[0].suggestion)
+
+    def test_api_includes_compiler_semantic_hints(self):
+        response = self.client.post("/api/diagnose", json={
+            "source": "int main(void) { int total = 1; return totla; }"
+        })
+        self.assertEqual(response.status_code, 200)
+        findings = response.get_json()["findings"]
+        semantic = [item for item in findings if item["code"] == "SEM002"]
+        self.assertTrue(semantic)
+        self.assertIn("total", semantic[0]["suggestion"])
 
     def test_api_rejects_non_json_payload(self):
         response = self.client.post("/api/repair", data="not json", content_type="text/plain")
