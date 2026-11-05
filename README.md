@@ -15,7 +15,7 @@ A compiler project for a defined subset of C. It combines a Flex lexer, Bison pa
 - Initial semantic checks for undeclared identifiers, same-scope redeclarations, invalid function calls, and some return-type errors
 - Three-address code generation for supported expressions, assignments, calls, returns, branches, and loops
 - TAC optimizer with basic-block/CFG construction, local constant folding, constant propagation, and dead temporary elimination; end-to-end `compiler_pipeline.py` supports `-O0` and `-O1`
-- Explainable Python heuristic diagnosis
+- Explainable Python heuristic diagnosis enriched with compiler semantic findings (undeclared names and same-scope redeclarations), including typo hints where a close declared name exists
 - Conservative repair candidate generation
 - Compiler-backed validation of repair candidates using the Flex/Bison parser and semantic pass
 - Flask JSON API and browser UI
