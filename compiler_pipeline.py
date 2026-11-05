@@ -17,8 +17,20 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_COMPILER = ROOT / "compiler" / "build" / "parser"
 
 
+def resolve_compiler_path(compiler: Path) -> Path:
+    """Resolve GCC/MSYS2 executable names on Windows, where binaries use .exe."""
+    if compiler.is_file():
+        return compiler
+    if compiler.suffix.lower() != ".exe":
+        windows_executable = compiler.with_name(compiler.name + ".exe")
+        if windows_executable.is_file():
+            return windows_executable
+    return compiler
+
+
 def compile_to_tac(source: str, compiler: Path) -> str:
     """Run the Flex/Bison compiler and return TAC, raising on compiler errors."""
+    compiler = resolve_compiler_path(compiler)
     if not compiler.is_file():
         raise FileNotFoundError(
             f"Compiler executable not found: {compiler}. Build it first with 'make'."
@@ -66,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         optimized, blocks = optimize_tac(raw)
         sys.stdout.write(optimized)
         if args.blocks:
-            print("\nBasic blocks and CFG successors:", file=sys.stderr)
+            print("\\nBasic blocks and CFG successors:", file=sys.stderr)
             for block in blocks:
                 print(f"  {block.name}: {', '.join(block.successors) or '(exit)'}",
                       file=sys.stderr)
