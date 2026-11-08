@@ -133,11 +133,11 @@ class DiagnosisTests(unittest.TestCase):
 
     def test_api_repair_note_explains_ambiguous_typo_without_guessing(self):
         source = (
-            "int main(void) {\\n"
-            "    int cat = 1;\\n"
-            "    int car = 2;\\n"
-            "    return cap;\\n"
-            "}\\n"
+            "int main(void) {\n"
+            "    int cat = 1;\n"
+            "    int car = 2;\n"
+            "    return cap;\n"
+            "}\n"
         )
         response = self.client.post("/api/repair", json={"source": source})
         self.assertEqual(response.status_code, 200)
