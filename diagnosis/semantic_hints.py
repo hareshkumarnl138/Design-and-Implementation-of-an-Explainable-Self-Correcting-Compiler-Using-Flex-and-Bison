@@ -46,10 +46,22 @@ def compiler_findings(source: str, stderr: str) -> list[Finding]:
                 key=lambda item: (item[0], item[1]),
             )
             suggestion = ""
-            if ranked and ranked[0][0] <= max(2, len(name) // 3):
+            # Offer a spelling hint only when the closest declaration is unique.
+            # Equal-distance candidates are ambiguous and must not be guessed.
+            unique_closest = (
+                ranked
+                and ranked[0][0] <= max(2, len(name) // 3)
+                and (len(ranked) == 1 or ranked[0][0] < ranked[1][0])
+            )
+            if unique_closest:
                 suggestion = (
                     f"Did you mean '{ranked[0][1]}'? Check the spelling and scope; "
                     "the compiler will not rename it automatically."
+                )
+            elif ranked and ranked[0][0] <= max(2, len(name) // 3):
+                suggestion = (
+                    "More than one declared identifier is equally close. Check the "
+                    "intended name and scope; no spelling correction was guessed."
                 )
             else:
                 suggestion = (
