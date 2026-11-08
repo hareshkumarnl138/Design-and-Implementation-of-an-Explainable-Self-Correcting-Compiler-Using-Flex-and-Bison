@@ -68,11 +68,17 @@ def compiler_findings(source: str, stderr: str) -> list[Finding]:
                     "Declare the identifier in the correct scope or use the intended "
                     "existing variable. No automatic rename was applied."
                 )
+            close_candidates = (
+                [item for distance, item in ranked if distance == ranked[0][0]]
+                if ranked and ranked[0][0] <= max(2, len(name) // 3)
+                else []
+            )
             findings.append(Finding(
                 code, "error", line_number, column_number,
                 f"Undeclared identifier '{name}'.",
                 "This name is used, but no visible declaration was found at this point.",
                 suggestion,
+                tuple(close_candidates),
             ))
         elif code == "SEM001":
             redeclared = re.search(r"Redeclaration of '([^']+)'", message)
