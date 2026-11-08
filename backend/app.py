@@ -85,7 +85,19 @@ def api_repair():
     elif not validation["available"]:
         note = "Compiler validation is unavailable. No automatic edit was applied."
     else:
-        note = "No supported repair was generated. The source was checked by the compiler."
+        semantic_errors = compiler_findings(source, validation["stderr"]) if validation["available"] else []
+        if any(item.code == "SEM001" for item in semantic_errors):
+            note = (
+                "A duplicate declaration was detected. No automatic rename or deletion "
+                "was applied because that requires your intent; review the suggested manual action."
+            )
+        elif any(item.code == "SEM002" for item in semantic_errors):
+            note = (
+                "An undeclared identifier remains. If the name is misspelled, check the "
+                "suggested spelling; otherwise declare it in the correct scope. The original was preserved."
+            )
+        else:
+            note = "No safe supported repair was generated. The source was checked by the compiler."
 
     return jsonify({
         "source": corrected,
