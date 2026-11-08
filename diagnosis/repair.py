@@ -167,13 +167,13 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
             typo_hints = [
                 finding for finding in semantic
                 if finding.code == "SEM002"
-                and re.search(r"Did you mean '([A-Za-z_]\\w*)'\\?", finding.suggestion)
+                and re.search(r"Did you mean '([A-Za-z_]\w*)'\?", finding.suggestion)
             ]
             if len(typo_hints) == 1:
                 finding = typo_hints[0]
                 match = re.search(r"undeclared identifier '([^']+)'", finding.message)
                 suggested = re.search(
-                    r"Did you mean '([A-Za-z_]\\w*)'\\?", finding.suggestion
+                    r"Did you mean '([A-Za-z_]\w*)'\?", finding.suggestion
                 )
                 if match and suggested:
                     old_name, new_name = match.group(1), suggested.group(1)
