@@ -85,19 +85,15 @@ def api_repair():
     elif not validation["available"]:
         note = "Compiler validation is unavailable. No automatic edit was applied."
     else:
-        semantic_errors = compiler_findings(source, validation["stderr"]) if validation["available"] else []
-        if any(item.code == "SEM001" for item in semantic_errors):
+        semantic_errors = [item for item in findings if item["code"] in {"SEM001", "SEM002"}]
+        duplicate_error = next((item for item in semantic_errors if item["code"] == "SEM001"), None)
+        undeclared_error = next((item for item in semantic_errors if item["code"] == "SEM002"), None)
+        if duplicate_error:
+            note = "A duplicate declaration was detected. " + duplicate_error["suggestion"]
+        elif undeclared_error:
             note = (
-                "A duplicate declaration was detected. No automatic rename or deletion "
-                "was applied because that requires your intent; review the suggested manual action."
-            )
-        elif any(item.code == "SEM002" for item in semantic_errors):
-            semantic_hint = next(
-                item.suggestion for item in semantic_errors
-                if item.code == "SEM002"
-            )
-            note = (
-                "An undeclared identifier remains. " + semantic_hint
+                "An undeclared identifier remains. "
+                + undeclared_error["suggestion"]
                 + " The original source was preserved."
             )
         else:
