@@ -169,8 +169,13 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
             ]
             if len(undeclared) == 1:
                 finding = undeclared[0]
+                # Finding.message is presentation text and starts with
+                # "Undeclared" (capital U); match case-insensitively so the
+                # compiler-derived typo candidate is not silently skipped.
                 unknown = re.search(
-                    r"undeclared identifier '([^']+)'", finding.message
+                    r"undeclared identifier '([^']+)'",
+                    finding.message,
+                    flags=re.IGNORECASE,
                 )
                 declared = list(dict.fromkeys(re.findall(
                     r"\b(?:int|float|double|char)\s+([A-Za-z_]\w*)",
