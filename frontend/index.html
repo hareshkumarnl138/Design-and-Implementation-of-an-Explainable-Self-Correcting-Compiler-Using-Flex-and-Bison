@@ -34,7 +34,7 @@ async function callApi(path){
    if(data.validation){
     const validation=document.createElement("article");
     validation.className="finding "+(data.validation.valid?"success":"error");
-    validation.textContent="Compiler validation: "+(data.validation.valid?"PASSED":"FAILED / UNAVAILABLE");
+    validation.textContent="Compiler validation: "+(data.validation.valid?"PASSED":(data.validation.available?"FAILED — source preserved; see semantic guidance below":"UNAVAILABLE — source preserved"));
     if(data.validation.stderr){const detail=document.createElement("pre");detail.textContent=data.validation.stderr;validation.append(detail);}
     results.append(validation);
    }
