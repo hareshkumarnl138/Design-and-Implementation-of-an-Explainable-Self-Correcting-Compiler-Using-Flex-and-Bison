@@ -112,11 +112,11 @@ class DiagnosisTests(unittest.TestCase):
 
     def test_api_applies_user_selected_ambiguous_typo_after_validation(self):
         source = (
-            "int main(void) {\\n"
-            "    int cat = 1;\\n"
-            "    int car = 2;\\n"
-            "    return cap;\\n"
-            "}\\n"
+            "int main(void) {\n"
+            "    int cat = 1;\n"
+            "    int car = 2;\n"
+            "    return cap;\n"
+            "}\n"
         )
         response = self.client.post("/api/repair/confirm", json={
             "source": source, "line": 4, "column": 12,
