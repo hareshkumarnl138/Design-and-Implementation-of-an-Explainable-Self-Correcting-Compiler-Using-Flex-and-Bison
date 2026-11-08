@@ -6,6 +6,7 @@ import re
 import subprocess
 
 from .diagnose import diagnose
+from .semantic_hints import compiler_findings
 
 ROOT = Path(__file__).resolve().parents[1]
 PARSER = ROOT / "compiler" / "build" / "parser"
@@ -155,6 +156,42 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
             )
         )
         candidate = repaired
+
+    # A uniquely identified spelling mistake can be proposed as a semantic
+    # repair. Never guess for general undeclared names or redeclarations.
+    # The API still applies this edit only after the real compiler accepts it.
+    if not repairs:
+        initial_validation = validate_source(candidate)
+        if initial_validation["available"] and not initial_validation["valid"]:
+            semantic = compiler_findings(candidate, initial_validation["stderr"])
+            typo_hints = [
+                finding for finding in semantic
+                if finding.code == "SEM002"
+                and re.search(r"Did you mean '([A-Za-z_]\\w*)'\\?", finding.suggestion)
+            ]
+            if len(typo_hints) == 1:
+                finding = typo_hints[0]
+                match = re.search(r"undeclared identifier '([^']+)'", finding.message)
+                suggested = re.search(
+                    r"Did you mean '([A-Za-z_]\\w*)'\\?", finding.suggestion
+                )
+                if match and suggested:
+                    old_name, new_name = match.group(1), suggested.group(1)
+                    source_lines = candidate.splitlines(keepends=True)
+                    if 1 <= finding.line <= len(source_lines):
+                        line_text = source_lines[finding.line - 1]
+                        start = finding.column - 1
+                        end = start + len(old_name)
+                        if line_text[start:end] == old_name:
+                            source_lines[finding.line - 1] = (
+                                line_text[:start] + new_name + line_text[end:]
+                            )
+                            candidate = "".join(source_lines)
+                            repairs.append(Repair(
+                                "FIX003", finding.line, old_name, new_name,
+                                "Corrected a uniquely matched identifier spelling; "
+                                "the compiler must validate the complete program."
+                            ))
 
     before = sum(f.severity == "error" for f in diagnose(source))
     after = sum(f.severity == "error" for f in diagnose(candidate))
