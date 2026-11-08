@@ -157,47 +157,74 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
         )
         candidate = repaired
 
-    # A uniquely identified spelling mistake can be proposed as a semantic
-    # repair. Never guess for general undeclared names or redeclarations.
-    # The API still applies this edit only after the real compiler accepts it.
+    # Propose a spelling correction only when exactly one declared identifier
+    # is the uniquely closest match. The full candidate is validated by the
+    # compiler in the API before it can ever be applied.
     if not repairs:
         initial_validation = validate_source(candidate)
         if initial_validation["available"] and not initial_validation["valid"]:
             semantic = compiler_findings(candidate, initial_validation["stderr"])
-            typo_hints = [
-                finding for finding in semantic
-                if finding.code == "SEM002"
-                and re.search(r"Did you mean '([A-Za-z_]\w*)'\?", finding.suggestion)
+            undeclared = [
+                finding for finding in semantic if finding.code == "SEM002"
             ]
-            if len(typo_hints) == 1:
-                finding = typo_hints[0]
-                match = re.search(r"undeclared identifier '([^']+)'", finding.message)
-                suggested = re.search(
-                    r"Did you mean '([A-Za-z_]\w*)'\?", finding.suggestion
+            if len(undeclared) == 1:
+                finding = undeclared[0]
+                unknown = re.search(
+                    r"undeclared identifier '([^']+)'", finding.message
                 )
-                if match and suggested:
-                    old_name, new_name = match.group(1), suggested.group(1)
-                    source_lines = candidate.splitlines(keepends=True)
-                    if 1 <= finding.line <= len(source_lines):
-                        line_text = source_lines[finding.line - 1]
-                        occurrences = list(re.finditer(
-                            rf"\b{re.escape(old_name)}\b", line_text
-                        ))
-                        if occurrences:
-                            target = min(
-                                occurrences,
-                                key=lambda item: abs(item.start() - (finding.column - 1)),
-                            )
-                            start, end = target.span()
-                            source_lines[finding.line - 1] = (
-                                line_text[:start] + new_name + line_text[end:]
-                            )
-                            candidate = "".join(source_lines)
-                            repairs.append(Repair(
-                                "FIX003", finding.line, old_name, new_name,
-                                "Corrected a uniquely matched identifier spelling; "
-                                "the compiler must validate the complete program."
+                declared = list(dict.fromkeys(re.findall(
+                    r"\\b(?:int|float|double|char)\\s+([A-Za-z_]\\w*)",
+                    candidate,
+                )))
+                if unknown:
+                    old_name = unknown.group(1)
+
+                    def edit_distance(left: str, right: str) -> int:
+                        previous = list(range(len(right) + 1))
+                        for i, left_char in enumerate(left, 1):
+                            current = [i]
+                            for j, right_char in enumerate(right, 1):
+                                current.append(min(
+                                    current[-1] + 1,
+                                    previous[j] + 1,
+                                    previous[j - 1] + (left_char != right_char),
+                                ))
+                            previous = current
+                        return previous[-1]
+
+                    ranked = sorted(
+                        ((edit_distance(old_name, name), name)
+                         for name in declared if name != old_name),
+                        key=lambda item: (item[0], item[1]),
+                    )
+                    threshold = max(2, len(old_name) // 3)
+                    if (ranked and ranked[0][0] <= threshold
+                            and (len(ranked) == 1 or ranked[0][0] < ranked[1][0])):
+                        new_name = ranked[0][1]
+                        source_lines = candidate.splitlines(keepends=True)
+                        if 1 <= finding.line <= len(source_lines):
+                            line_text = source_lines[finding.line - 1]
+                            occurrences = list(re.finditer(
+                                rf"\\b{re.escape(old_name)}\\b", line_text
                             ))
+                            if occurrences:
+                                target = min(
+                                    occurrences,
+                                    key=lambda item: abs(
+                                        item.start() - (finding.column - 1)
+                                    ),
+                                )
+                                start_pos, end_pos = target.span()
+                                source_lines[finding.line - 1] = (
+                                    line_text[:start_pos] + new_name
+                                    + line_text[end_pos:]
+                                )
+                                candidate = "".join(source_lines)
+                                repairs.append(Repair(
+                                    "FIX003", finding.line, old_name, new_name,
+                                    "Corrected a uniquely closest identifier spelling; "
+                                    "the complete program must pass compiler validation."
+                                ))
 
     before = sum(f.severity == "error" for f in diagnose(source))
     after = sum(f.severity == "error" for f in diagnose(candidate))
