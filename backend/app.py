@@ -1,5 +1,6 @@
 """Flask API and same-origin browser UI for diagnosis and validated repair."""
 from pathlib import Path
+import re
 import sys
 
 from flask import Flask, jsonify, request, send_from_directory
@@ -58,6 +59,54 @@ def api_diagnose():
         "count": len(findings),
         "findings": findings,
         "compiler_validation": compiler_result,
+    })
+
+
+@app.post("/api/repair/confirm")
+def api_confirm_semantic_repair():
+    """Apply a user-selected spelling candidate only after compiler validation."""
+    source, error = read_source()
+    if error:
+        return error
+    payload = request.get_json(silent=True) or {}
+    line = payload.get("line")
+    column = payload.get("column")
+    identifier = payload.get("identifier")
+    replacement = payload.get("replacement")
+    if (not isinstance(line, int) or not isinstance(column, int)
+            or not isinstance(identifier, str) or not isinstance(replacement, str)):
+        return jsonify({"error": "line, column, identifier and replacement are required."}), 400
+
+    initial = validate_source(source)
+    if not initial["available"]:
+        return jsonify({"changed": False, "source": source, "note": initial["stderr"]}), 503
+    semantic = compiler_findings(source, initial["stderr"])
+    finding = next((item for item in semantic
+                    if item.code == "SEM002" and item.line == line
+                    and item.column == column
+                    and item.message == f"Undeclared identifier '{identifier}'."), None)
+    if finding is None or replacement not in finding.candidates:
+        return jsonify({"error": "The selected candidate is not valid for this diagnostic."}), 400
+
+    source_lines = source.splitlines(keepends=True)
+    if line < 1 or line > len(source_lines):
+        return jsonify({"error": "Diagnostic line is outside the source."}), 400
+    line_text = source_lines[line - 1]
+    start = column - 1
+    token = re.compile(r"[A-Za-z_]\w*").match(line_text, start)
+    if token is None or token.group(0) != identifier:
+        return jsonify({"error": "The identifier no longer matches the diagnostic location."}), 409
+    source_lines[line - 1] = line_text[:start] + replacement + line_text[token.end():]
+    candidate = "".join(source_lines)
+    validation = validate_source(candidate)
+    if not validation["available"] or not validation["valid"]:
+        return jsonify({
+            "changed": False, "source": source, "validation": validation,
+            "note": "The selected correction did not pass compiler validation. Original source preserved."
+        })
+    return jsonify({
+        "changed": True, "source": candidate, "validation": validation,
+        "note": f"Replaced '{identifier}' with '{replacement}'. The selected correction passed compiler validation."
     })
 
 
