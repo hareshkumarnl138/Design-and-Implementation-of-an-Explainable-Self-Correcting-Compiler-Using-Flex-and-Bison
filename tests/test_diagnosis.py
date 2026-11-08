@@ -74,6 +74,18 @@ class DiagnosisTests(unittest.TestCase):
         self.assertEqual(data["source"], source)
         self.assertFalse(data["validation"]["valid"])
 
+    def test_repair_proposes_unique_undeclared_identifier_typo(self):
+        source = "int main(void) { int total = 1; return totla; }"
+        candidate, repairs = repair_source(source)
+        self.assertIn("return total;", candidate)
+        self.assertEqual([repair.rule for repair in repairs], ["FIX003"])
+
+    def test_duplicate_declaration_is_not_automatically_changed(self):
+        source = "int main(void) { int value = 1; int value = 2; return value; }"
+        candidate, repairs = repair_source(source)
+        self.assertEqual(candidate, source)
+        self.assertEqual(repairs, [])
+
     def test_undeclared_identifier_suggests_close_declared_name(self):
         findings = compiler_findings(
             "int main(void) { int total = 1; return totla; }",
@@ -89,6 +101,26 @@ class DiagnosisTests(unittest.TestCase):
         )
         self.assertEqual(findings[0].code, "SEM001")
         self.assertIn("Rename one declaration", findings[0].suggestion)
+
+    def test_api_validates_and_applies_unique_typo_repair(self):
+        source = "int main(void) { int total = 1; return totla; }"
+        response = self.client.post("/api/repair", json={"source": source})
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["changed"], data["validation"]["stderr"])
+        self.assertTrue(data["validation"]["valid"])
+        self.assertIn("return total;", data["source"])
+        self.assertEqual(data["repairs"][0]["rule"], "FIX003")
+
+    def test_api_keeps_duplicate_declaration_for_manual_decision(self):
+        source = "int main(void) { int value = 1; int value = 2; return value; }"
+        response = self.client.post("/api/repair", json={"source": source})
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertFalse(data["changed"])
+        self.assertEqual(data["source"], source)
+        self.assertIn("duplicate declaration", data["note"].lower())
+        self.assertTrue(any(f["code"] == "SEM001" for f in data["findings_after_repair"]))
 
     def test_api_includes_compiler_semantic_hints(self):
         response = self.client.post("/api/diagnose", json={
