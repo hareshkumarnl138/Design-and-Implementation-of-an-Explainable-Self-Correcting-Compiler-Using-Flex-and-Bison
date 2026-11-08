@@ -12,6 +12,7 @@ class Finding:
     message: str
     explanation: str
     suggestion: str = ""
+    candidates: tuple[str, ...] = ()
     def to_dict(self) -> dict:
         return asdict(self)
 
