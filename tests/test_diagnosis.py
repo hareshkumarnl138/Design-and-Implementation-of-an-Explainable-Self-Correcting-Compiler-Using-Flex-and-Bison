@@ -103,6 +103,39 @@ class DiagnosisTests(unittest.TestCase):
         self.assertIn("equally close", findings[0].suggestion)
         self.assertNotIn("Did you mean", findings[0].suggestion)
 
+    def test_ambiguous_candidates_are_exposed_for_user_selection(self):
+        findings = compiler_findings(
+            "int main(void) { int cat = 1; int car = 2; return cap; }",
+            "-:1:55: error[SEM002]: Use of undeclared identifier 'cap'",
+        )
+        self.assertEqual(set(findings[0].candidates), {"cat", "car"})
+
+    def test_api_applies_user_selected_ambiguous_typo_after_validation(self):
+        source = (
+            "int main(void) {\\n"
+            "    int cat = 1;\\n"
+            "    int car = 2;\\n"
+            "    return cap;\\n"
+            "}\\n"
+        )
+        response = self.client.post("/api/repair/confirm", json={
+            "source": source, "line": 4, "column": 12,
+            "identifier": "cap", "replacement": "cat",
+        })
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["changed"], data.get("validation"))
+        self.assertTrue(data["validation"]["valid"])
+        self.assertIn("return cat;", data["source"])
+
+    def test_api_rejects_unoffered_semantic_candidate(self):
+        source = "int main(void) { int cat = 1; int car = 2; return cap; }"
+        response = self.client.post("/api/repair/confirm", json={
+            "source": source, "line": 1, "column": 55,
+            "identifier": "cap", "replacement": "dog",
+        })
+        self.assertEqual(response.status_code, 400)
+
     def test_duplicate_declaration_explains_manual_choices(self):
         findings = compiler_findings(
             "int main(void) { int value = 1; int value = 2; return value; }",
