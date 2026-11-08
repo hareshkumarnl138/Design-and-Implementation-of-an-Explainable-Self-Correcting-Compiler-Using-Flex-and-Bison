@@ -131,6 +131,25 @@ class DiagnosisTests(unittest.TestCase):
         self.assertIn("duplicate declaration", data["note"].lower())
         self.assertTrue(any(f["code"] == "SEM001" for f in data["findings_after_repair"]))
 
+    def test_api_repair_note_explains_ambiguous_typo_without_guessing(self):
+        source = (
+            "int main(void) {\\n"
+            "    int cat = 1;\\n"
+            "    int car = 2;\\n"
+            "    return cap;\\n"
+            "}\\n"
+        )
+        response = self.client.post("/api/repair", json={"source": source})
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertFalse(data["changed"])
+        self.assertIn("equally close", data["note"])
+        self.assertTrue(any(
+            item["code"] == "SEM002"
+            and "equally close" in item["suggestion"]
+            for item in data["findings_after_repair"]
+        ))
+
     def test_api_includes_compiler_semantic_hints(self):
         response = self.client.post("/api/diagnose", json={
             "source": "int main(void) { int total = 1; return totla; }"
