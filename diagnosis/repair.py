@@ -180,9 +180,15 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
                     source_lines = candidate.splitlines(keepends=True)
                     if 1 <= finding.line <= len(source_lines):
                         line_text = source_lines[finding.line - 1]
-                        start = finding.column - 1
-                        end = start + len(old_name)
-                        if line_text[start:end] == old_name:
+                        occurrences = list(re.finditer(
+                            rf"\\b{re.escape(old_name)}\\b", line_text
+                        ))
+                        if occurrences:
+                            target = min(
+                                occurrences,
+                                key=lambda item: abs(item.start() - (finding.column - 1)),
+                            )
+                            start, end = target.span()
                             source_lines[finding.line - 1] = (
                                 line_text[:start] + new_name + line_text[end:]
                             )
