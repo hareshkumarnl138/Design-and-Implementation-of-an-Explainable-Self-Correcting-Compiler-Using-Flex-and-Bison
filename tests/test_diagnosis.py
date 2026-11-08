@@ -94,6 +94,15 @@ class DiagnosisTests(unittest.TestCase):
         self.assertEqual(findings[0].code, "SEM002")
         self.assertIn("total", findings[0].suggestion)
 
+    def test_ambiguous_typo_does_not_guess_between_equal_candidates(self):
+        findings = compiler_findings(
+            "int main(void) { int cat = 1; int car = 2; return cap; }",
+            "-:1:55: error[SEM002]: Use of undeclared identifier 'cap'",
+        )
+        self.assertEqual(findings[0].code, "SEM002")
+        self.assertIn("equally close", findings[0].suggestion)
+        self.assertNotIn("Did you mean", findings[0].suggestion)
+
     def test_duplicate_declaration_explains_manual_choices(self):
         findings = compiler_findings(
             "int main(void) { int value = 1; int value = 2; return value; }",
