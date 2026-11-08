@@ -54,8 +54,31 @@ function renderFindings(findings){findings.forEach(item=>{
  const explanation=document.createElement("p");explanation.textContent=item.explanation;
  card.append(heading,message,explanation);
  if(item.suggestion){const suggestion=document.createElement("p");suggestion.textContent="Suggestion: "+item.suggestion;card.append(suggestion);}
+ if(item.code==="SEM002" && Array.isArray(item.candidates) && item.candidates.length>1){
+  const prompt=document.createElement("p");prompt.textContent="Choose the intended identifier. The compiler will validate your choice before applying it.";card.append(prompt);
+  const choices=document.createElement("div");
+  item.candidates.forEach(candidate=>{
+   const choose=document.createElement("button");choose.type="button";choose.className="secondary";choose.textContent="Use "+candidate;
+   choose.addEventListener("click",()=>confirmCandidate(item,candidate,choose));choices.append(choose);
+  });
+  card.append(choices);
+ }
  results.append(card);
 });}
+async function confirmCandidate(finding,replacement,button){
+ button.disabled=true;status.textContent="Validating selected correction…";
+ try{
+  const response=await fetch("/api/repair/confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+   source:source.value,line:finding.line,column:finding.column,
+   identifier:(finding.message.match(/'([^']+)'/)||[])[1],replacement
+  })});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||"Correction failed");
+  if(data.changed){source.value=data.source;status.textContent=data.note;results.replaceChildren();
+   const success=document.createElement("article");success.className="finding success";success.textContent="Compiler validation: PASSED. "+data.note;results.append(success);
+   const code=document.createElement("pre");code.textContent=data.source;results.append(code);
+  }else{status.textContent=data.note||"Correction was not applied.";button.disabled=false;}
+ }catch(error){status.textContent="Could not apply correction: "+error.message;button.disabled=false;}
+}
 document.querySelector("#diagnose").addEventListener("click",()=>callApi("/api/diagnose"));
 document.querySelector("#repair").addEventListener("click",()=>callApi("/api/repair"));
 </script></body></html>
