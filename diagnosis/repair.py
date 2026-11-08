@@ -181,7 +181,7 @@ def repair_source(source: str) -> tuple[str, list[Repair]]:
                     if 1 <= finding.line <= len(source_lines):
                         line_text = source_lines[finding.line - 1]
                         occurrences = list(re.finditer(
-                            rf"\\b{re.escape(old_name)}\\b", line_text
+                            rf"\b{re.escape(old_name)}\b", line_text
                         ))
                         if occurrences:
                             target = min(
