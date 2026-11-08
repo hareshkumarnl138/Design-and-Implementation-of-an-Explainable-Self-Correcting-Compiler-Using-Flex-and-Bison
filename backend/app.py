@@ -92,9 +92,13 @@ def api_repair():
                 "was applied because that requires your intent; review the suggested manual action."
             )
         elif any(item.code == "SEM002" for item in semantic_errors):
+            semantic_hint = next(
+                item.suggestion for item in semantic_errors
+                if item.code == "SEM002"
+            )
             note = (
-                "An undeclared identifier remains. If the name is misspelled, check the "
-                "suggested spelling; otherwise declare it in the correct scope. The original was preserved."
+                "An undeclared identifier remains. " + semantic_hint
+                + " The original source was preserved."
             )
         else:
             note = "No safe supported repair was generated. The source was checked by the compiler."
