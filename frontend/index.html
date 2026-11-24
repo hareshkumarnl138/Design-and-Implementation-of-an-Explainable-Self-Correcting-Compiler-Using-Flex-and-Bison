@@ -40,6 +40,19 @@ async function callApi(path){
    }
    data.repairs.forEach(item=>{const card=document.createElement("article");card.className="finding success";card.textContent="Line "+item.line+": "+item.explanation+" ("+item.before.trim()+" → "+item.after.trim()+")";results.append(card);});
    renderFindings(data.findings_after_repair);
+   // Render ambiguous choices in a dedicated panel for clear visibility.
+   (data.semantic_choices||[]).forEach(choice=>{
+    const panel=document.createElement("article");panel.className="finding warning";
+    const heading=document.createElement("strong");heading.textContent="Choose the intended variable for '"+choice.identifier+"'";
+    const detail=document.createElement("p");detail.textContent="Multiple similarly named declarations were found. Select one; the source changes only if the compiler accepts it.";
+    panel.append(heading,detail);
+    choice.candidates.forEach(candidate=>{
+     const choose=document.createElement("button");choose.type="button";choose.className="secondary";choose.textContent="Replace "+choice.identifier+" with "+candidate;
+     choose.addEventListener("click",()=>confirmCandidate({line:choice.line,column:choice.column,message:"Undeclared identifier '"+choice.identifier+"'"},candidate,choose));
+     panel.append(choose);
+    });
+    results.append(panel);
+   });
   }else{
    status.textContent=data.count+" heuristic finding(s) reported. Compiler validation: "+(data.compiler_validation.valid?"passed":"failed");
    if(data.compiler_validation.stderr){const detail=document.createElement("pre");detail.textContent=data.compiler_validation.stderr;results.append(detail);}
