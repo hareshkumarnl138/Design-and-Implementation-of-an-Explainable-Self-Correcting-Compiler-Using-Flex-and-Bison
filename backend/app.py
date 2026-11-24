@@ -148,12 +148,25 @@ def api_repair():
         else:
             note = "No safe supported repair was generated. The source was checked by the compiler."
 
+    semantic_choices = []
+    for item in findings:
+        if item["code"] == "SEM002" and item.get("candidates"):
+            match = re.search(r"Undeclared identifier '([^']+)'", item["message"])
+            if match:
+                semantic_choices.append({
+                    "line": item["line"],
+                    "column": item["column"],
+                    "identifier": match.group(1),
+                    "candidates": list(item["candidates"]),
+                })
+
     return jsonify({
         "source": corrected,
         "changed": accepted,
         "repairs": [item.to_dict() for item in repairs] if accepted else [],
         "candidate_rejected": candidate != source and not accepted,
         "findings_after_repair": findings,
+        "semantic_choices": semantic_choices,
         "validation": validation,
         "note": note + " Review all changes before using the code.",
     })
